@@ -1,0 +1,37 @@
+# Processo ficticio e estavel, so para os testes do portao.
+#
+# NAO refletir aqui o processo real da squad. O objetivo e justamente o
+# contrario: o portao precisa ser testavel sem depender de config/settings.yaml,
+# para que uma mudanca de processo nunca possa mascarar uma regressao de
+# seguranca.
+
+squad:
+  nome: Teste
+  produto: Teste
+
+devops:
+  tipos: [Task]
+  estados_validacao: [Em Validacao]
+  estados_ativos: [Aberto, Em Andamento, Em Validacao]
+  transicoes_permitidas:
+    - [Aberto, Em Andamento]
+    - [Em Andamento, Em Validacao]
+  transicoes_bloqueadas:
+    - [Em Validacao, Concluido]
+
+github:
+  repos: []
+  janela_dias: 14
+
+databricks:
+  paths: [/Repos/teste]
+  escrita_permitida:
+    - /Repos/teste/docs
+
+gate:
+  exigir_aprovacao: true
+  exigir_identificacao: true
+
+formato:
+  data: "%d/%m/%Y"
+  paper_negocio_max_paginas: 10

@@ -1,0 +1,15 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+knowledge/cards/*.json
+knowledge/commits/*.json
+knowledge/notebooks/*
+!knowledge/**/.gitkeep
+proposals/pending/*.json
+proposals/rejected/*.json
+outputs/*
+!outputs/.gitkeep
+
+# cache de testes
+.pytest_cache/

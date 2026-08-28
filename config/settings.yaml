@@ -1,0 +1,63 @@
+# Configuracao da squad. Nada de segredo aqui, segredos ficam no .env
+#
+# Os estados e tipos abaixo foram conferidos contra os cards reais das sprints
+# S2 e S3 do Q3/26 em 28/08/2026. O projeto usa processo customizado da Ambev,
+# nao o Scrum padrao do Azure DevOps: nao existem os estados New, Approved,
+# Committed, In Progress nem Ready for Validation.
+
+squad:
+  nome: Revenue
+  produto: Promo Phoenix
+
+devops:
+  # tipos de work item que a squad usa. O executor recusa criar card de tipo
+  # fora desta lista, mesmo com aprovacao humana.
+  tipos: [Technical Story, Analysis Activity, Business Story, Bug, Action]
+
+  # nao existe estado de validacao explicito neste processo. A validacao
+  # acontece na passagem para Done, que e sempre humana e sempre na interface.
+  # Deixar vazio e honesto: preencher com um estado inventado faria o board
+  # mentir. Corrigir quando o processo ganhar um estado de validacao.
+  estados_validacao: []
+
+  estados_ativos: [In-Refinement, Waiting-Development, Developing]
+
+  # transicoes que o executor tem permissao de aplicar, mesmo aprovadas.
+  # Lista conservadora: cobre so o avanco natural do refinamento ate o
+  # desenvolvimento. O grafo oficial de transicoes do processo ainda nao foi
+  # confirmado com o time de processo, entao qualquer transicao fora daqui
+  # continua bloqueada por omissao, que e o comportamento seguro.
+  transicoes_permitidas:
+    - [In-Refinement, Waiting-Development]
+    - [Waiting-Development, Developing]
+
+  # transicoes que NUNCA sao aplicadas por automacao, nem aprovadas.
+  # Fechar card e decisao humana feita na interface do DevOps.
+  transicoes_bloqueadas:
+    - [Developing, Done]
+    - [Waiting-Development, Done]
+    - [In-Refinement, Done]
+
+github:
+  repos:
+    - BrewDat/brewdat-saz-saz-sales-revenue-promophoenix-volume-mlp
+  # janela padrao de coleta de commits, em dias
+  janela_dias: 14
+
+databricks:
+  # caminhos observados no workspace
+  paths:
+    - /Repos/revenue/promophoenix-volume-mlp
+  # notebooks so podem ser escritos dentro destes prefixos
+  escrita_permitida:
+    - /Repos/revenue/promophoenix-volume-mlp/docs
+
+gate:
+  # exige aprovacao explicita para toda escrita externa. Nao desligavel por config.
+  exigir_aprovacao: true
+  # aprovador precisa se identificar ao aprovar
+  exigir_identificacao: true
+
+formato:
+  data: "%d/%m/%Y"
+  paper_negocio_max_paginas: 10

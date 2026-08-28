@@ -1,0 +1,52 @@
+# Indice de decisoes. O revisor tecnico cruza contra este arquivo.
+# status: vigente | superseded | proposta
+
+decisoes:
+  - id: ADR-0001
+    titulo: "Grao colapsado por menu"
+    status: vigente
+    projeto: desconto-qmin
+    data: 2026-07-15
+    arquivo: ADR-0001-grao-menu.md
+
+  - id: ADR-0002
+    titulo: "desconto_entrada como variavel de tratamento"
+    status: vigente
+    projeto: desconto-qmin
+    data: 2026-07-15
+    arquivo: ADR-0002-desconto-entrada-tratamento.md
+
+  - id: ADR-0003
+    titulo: "Calibracao de gamma na base geral, nao na experimental"
+    status: vigente
+    projeto: desconto-qmin
+    data: 2026-07-29
+    arquivo: ADR-0003-calibracao-gamma.md
+
+  - id: ADR-0004
+    titulo: "nr_visitas_representante permanece na base e fora do modelo"
+    status: vigente
+    projeto: desconto-qmin
+    data: 2026-08-05
+    arquivo: ADR-0004-visitas-representante.md
+
+  - id: ADR-0005
+    titulo: "Enquadramento da comparacao com o Summer"
+    status: vigente
+    projeto: desconto-qmin
+    data: 2026-08-11
+    arquivo: ADR-0005-enquadramento-summer.md
+
+  - id: ADR-0006
+    titulo: "Politica do portao no processo real, testes num processo ficticio"
+    status: vigente
+    projeto: docsquad
+    data: 2026-08-28
+    arquivo: ADR-0006-politica-processo-real.md
+
+  - id: ADR-0007
+    titulo: "AGENTS.md como fonte unica de instrucao de agente"
+    status: vigente
+    projeto: docsquad
+    data: 2026-08-28
+    arquivo: ADR-0007-fonte-unica-de-instrucao.md

@@ -1,0 +1,57 @@
+# Revisor de negocios
+# Objetivo: o leitor de negocio termina o documento sabendo o que decidir.
+# Custo do erro: o leitor trava, pergunta em reuniao, o documento perde autoridade.
+# Vies deliberado: prefere cortar precisao a manter o leitor perdido.
+
+agente: revisor-negocio
+saida: estruturada   # nota por metrica + lista de violacoes com trecho citado
+
+metricas:
+  - id: termos_definidos
+    descricao: "Todo termo tecnico e definido na primeira ocorrencia"
+    alvo: 1.0
+    bloqueante: true
+    como_medir: "cada termo do glossario que aparece no texto tem definicao antes ou junto do primeiro uso"
+
+  - id: vocabulario_canonico
+    descricao: "Zero sinonimos fora do glossario"
+    alvo: 0
+    bloqueante: true
+    como_medir: "contar ocorrencias da lista 'proibidos' de config/glossario.yaml"
+
+  - id: formula_com_leitura
+    descricao: "Toda formula tem traducao em linguagem natural e ponte classica"
+    alvo: 1.0
+    bloqueante: true
+
+  - id: paginas
+    descricao: "Teto de extensao"
+    alvo: 10
+    bloqueante: true
+    como_medir: "estimativa por contagem de caracteres, ~3000 por pagina renderizada"
+
+  - id: densidade_paragrafo
+    descricao: "Media de frases por paragrafo"
+    alvo: 4
+    bloqueante: false
+
+  - id: confusoes_reincidentes
+    descricao: "Padroes ja registrados no review-log nao se repetem"
+    alvo: 0
+    bloqueante: true
+    como_medir: "cruzar com review-log/_categorias.yaml; esta e a metrica de maior valor"
+
+  - id: enquadramentos
+    descricao: "Enquadramentos obrigatorios respeitados, proibicoes absolutas ausentes"
+    alvo: 0
+    bloqueante: true
+
+  - id: decisao_explicita
+    descricao: "O documento diz o que o leitor deve decidir ou aprovar"
+    alvo: 1.0
+    bloqueante: false
+
+veredito:
+  aprovado: "nenhuma metrica bloqueante violada"
+  revisar: "ate duas violacoes bloqueantes"
+  reescrever: "tres ou mais violacoes bloqueantes"

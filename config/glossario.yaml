@@ -1,0 +1,59 @@
+# Vocabulario canonico. O revisor de negocios valida contra este arquivo.
+# Regra: um conceito, um termo. Sinonimos sao erro, nao estilo.
+
+termos:
+  probabilidade_de_conversao:
+    canonico: "probabilidade de conversao"
+    definicao: "chance de o PDV aceitar a promocao e comprar o minimo exigido"
+    proibidos: ["taxa de aceite", "chance de compra", "propensao", "conversion rate"]
+    publico: ambos
+
+  esforco_solicitado:
+    canonico: "esforco solicitado"
+    definicao: "distancia entre o Qmin e o volume normal de compra do PDV"
+    proibidos: ["uplift exigido (em texto de negocio)", "esforco pedido", "exigencia"]
+    publico: ambos
+    nota: "em paper tecnico, 'uplift exigido' e aceito junto da formula"
+
+  dificuldade:
+    canonico: "dificuldade"
+    definicao: "combinacao entre esforco solicitado e desconto oferecido"
+    proibidos: ["complexidade", "barreira", "atrito"]
+    publico: ambos
+
+  elasticidade:
+    canonico: "elasticidade"
+    definicao: "variacao percentual na probabilidade de conversao dividida pela variacao percentual no desconto"
+    exige_formula: true
+    exige_ponte_classica: true
+    publico: ambos
+
+  estimador_de_roi:
+    canonico: "estimador de ROI"
+    definicao: "trava de eficiencia que relaciona uplift exigido e desconto concedido"
+    proibidos: ["ROI", "retorno", "lucro"]
+    publico: ambos
+    nota: "nunca 'ROI' sozinho: e trava de eficiencia, nao estimativa de lucro"
+
+  qmin:
+    canonico: "Qmin"
+    definicao: "quantidade minima de caixas recomendada pelo Otimizador de Volume 1.0"
+    publico: ambos
+
+enquadramentos_obrigatorios:
+  summer: >
+    O Summer estabeleceu a fundacao. Ao construir sobre ela identificamos
+    limitacoes naturais de escopo, quase todas declaradas pelo proprio sistema,
+    e desenvolvemos estrategias de contorno. Nunca critica a viabilidade ou ao
+    impacto do projeto do Eduardo.
+  boxplot: >
+    Mudanca de escopo da avaliacao do grafico. Nunca "erro anterior", porque a
+    abordagem original nao tinha documentacao que permitisse confirmar intencao.
+
+proibicoes_absolutas:
+  - id: proposta_dez_2025
+    regra: "A proposta de dezembro de 2025 (bootstrap ponderado) nao entra no corpo de nenhum paper. E ponto de fala verbal apenas."
+  - id: em_dash_prosa
+    regra: "Sem travessao em prosa corrida. Use virgula, dois pontos ou parenteses. Permitido apenas em itemizacao."
+  - id: numero_summer_sem_qualificador
+    regra: "Nenhum numero do Summer citado sem anchor_depth_pct e sem distinguir E de r."

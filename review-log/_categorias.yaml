@@ -1,0 +1,34 @@
+# Taxonomia das confusoes de revisores. O revisor de negocios usa isto para
+# checar se um padrao ja observado esta se repetindo.
+# Regra de crescimento: quando uma categoria atinge tres ocorrencias, ela vira
+# regra no contrato de estilo e deixa de ser so um registro.
+
+categorias:
+  - id: termo_nao_definido
+    descricao: "Termo tecnico usado antes de ser definido"
+    virou_regra: true
+    regra: "contracts/estilo-paper-negocio.md, secao vocabulario"
+
+  - id: formula_sem_ponte
+    descricao: "Formula apresentada sem leitura em linguagem natural"
+    virou_regra: true
+    regra: "toda formula acompanhada de ponte classica"
+
+  - id: conhecimento_assumido
+    descricao: "Assume que o leitor conhece contexto nao declarado no documento"
+    virou_regra: false
+
+  - id: decisao_implicita
+    descricao: "O leitor nao sabe o que deve aprovar ou decidir"
+    virou_regra: false
+
+  - id: comparacao_lida_como_critica
+    descricao: "Comparacao com trabalho de outro time soou como julgamento"
+    virou_regra: true
+    regra: "ADR-0005, enquadramento obrigatorio"
+
+  - id: excesso_de_ressalva
+    descricao: "Tantas ressalvas que a mensagem principal se perde"
+    virou_regra: false
+
+registros: []

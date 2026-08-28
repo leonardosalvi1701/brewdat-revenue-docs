@@ -1,0 +1,68 @@
+# Revisor tecnico
+# Objetivo: nada e afirmado sem lastro e nada contradiz decisao vigente.
+# Custo do erro: um par tecnico identifica a falha e a credibilidade do trabalho cai.
+# Vies deliberado: prefere manter precisao a facilitar leitura.
+
+agente: revisor-tecnico
+saida: estruturada
+
+metricas:
+  - id: numeros_rastreaveis
+    descricao: "Toda afirmacao numerica aponta para notebook, experimento, card ou dossie"
+    alvo: 1.0
+    bloqueante: true
+
+  - id: conflito_com_adr
+    descricao: "Nenhuma afirmacao contradiz ADR de status 'vigente'"
+    alvo: 0
+    bloqueante: true
+    como_medir: "cruzar com decisions/_index.yaml"
+
+  - id: notacao_consistente
+    descricao: "Notacao matematica uniforme"
+    alvo: 1.0
+    bloqueante: true
+    simbolos: ["beta_1", "gamma", "epsilon", "d", "u", "P(d)", "Qmin", "V0"]
+
+  - id: grao_e_janela
+    descricao: "Toda afirmacao empirica declara grao e janela temporal"
+    alvo: 1.0
+    bloqueante: true
+    nota: "grao canonico: cod_unb x cod_pdv x cod_abrev_prod x id_menu"
+
+  - id: qualificadores_summer
+    descricao: "Numero do Summer citado com anchor_depth_pct e distincao E versus r"
+    alvo: 1.0
+    bloqueante: true
+
+  - id: causalidade_declarada
+    descricao: "Alegacao causal so onde ha desenho causal; correlacional declarado como tal"
+    alvo: 1.0
+    bloqueante: true
+    nota: "beta_1 vem de experimento randomizado; features de perfil vem de historico"
+
+  - id: reprodutibilidade
+    descricao: "Resultado apresentado indica como reproduzi-lo"
+    alvo: 1.0
+    bloqueante: false
+
+  - id: limitacoes_declaradas
+    descricao: "Secao de limitacoes presente e especifica"
+    alvo: 1.0
+    bloqueante: false
+
+veredito:
+  aprovado: "nenhuma metrica bloqueante violada"
+  revisar: "ate duas violacoes bloqueantes"
+  reescrever: "tres ou mais violacoes bloqueantes"
+
+conflito_com_negocio:
+  # onde as duas rubricas se opoem, o humano arbitra. O sistema nao resolve sozinho.
+  pontos_de_tensao:
+    - "revisor-negocio quer cortar formula, revisor-tecnico exige formula"
+    - "revisor-negocio quer simplificar ressalva, revisor-tecnico exige a ressalva"
+    - "revisor-negocio quer teto de 10 paginas, revisor-tecnico quer detalhe completo"
+  resolucao: >
+    Paper de negocio segue a rubrica de negocio, paper tecnico segue a tecnica.
+    O mesmo conteudo existe nas duas versoes com profundidade diferente. Onde
+    ainda houver conflito, o autor arbitra: o sistema nao decide.
