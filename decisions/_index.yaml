@@ -46,7 +46,29 @@ decisoes:
 
   - id: ADR-0007
     titulo: "AGENTS.md como fonte unica de instrucao de agente"
-    status: vigente
+    status: superseded
+    substituida_por: ADR-0008
     projeto: docsquad
     data: 2026-08-28
     arquivo: ADR-0007-fonte-unica-de-instrucao.md
+
+  - id: ADR-0008
+    titulo: "agent_instructions/ como unica casa de instrucao de agente"
+    status: vigente
+    projeto: docsquad
+    data: 2026-08-28
+    arquivo: ADR-0008-instrucao-em-pasta-unica.md
+
+  - id: ADR-0009
+    titulo: "Sprint review gerada como estrutura e evidencia, nunca como prosa"
+    status: vigente
+    projeto: docsquad
+    data: 2026-08-31
+    arquivo: ADR-0009-sprint-review-estrutura-sem-prosa.md
+
+  - id: ADR-0010
+    titulo: "Padrao de card extraido dos cards reais, com DoD como portao de Waiting-QA"
+    status: vigente
+    projeto: docsquad
+    data: 2026-08-31
+    arquivo: ADR-0010-padrao-de-card.md

@@ -1,24 +1,37 @@
-📌 **Atualizacao {Story|Bug|PBI} {numero} - {DD/MM/AAAA}**
+📌 Update — {TIPO EM CAIXA ALTA} {numero}: {titulo do card}
 
-**1. Contexto**
-Em uma ou duas frases, por que esta tarefa existe e onde ela estava.
+{DD/MM/AAAA}
+Paragrafo de abertura: o que foi feito neste intervalo e com que objetivo. Uma
+frase de objetivo antes do detalhe, para quem le so o primeiro paragrafo.
 
-**2. O que foi feito**
-- item objetivo, verbo no passado
-- item objetivo
-Commits: {sha} {mensagem curta}
+**1. {Tema}**
+- achado ou decisao, com numero e fonte quando houver
+- o que mudou por causa dele
 
-**3. Resultado ou decisao**
-O que ficou decidido, com o numero quando houver.
-Se houve decisao metodologica, referenciar o ADR.
+**2. {Tema}**
+- idem
 
-**4. Proximos passos**
+**Status:** {estado atual em uma frase}
+**Proximos passos:**
 - proximo item, com responsavel quando nao for o autor
 
 <!--
-Padrao da squad:
-- data sempre dd/mm/aaaa
-- secoes numeradas
-- sem travessao em prosa corrida
-- densidade maxima de informacao em minimo de palavras
+Padrao da squad, extraido dos comentarios reais da S3-Q3-26.
+
+Blocos opcionais, so quando houver o que dizer:
+
+**Impedimento:** o que trava, desde quando, e quem destrava. Sem isso o
+atraso vira surpresa na review.
+
+**QA realizado:** o que foi conferido e o que ficou apontado. Vai no card de
+quem desenvolveu, escrito por quem validou, porque o board nao tem campo de
+validador.
+
+Regras:
+- data sempre dd/mm/aaaa, na segunda linha
+- o titulo do card no cabecalho, para o comentario se sustentar sozinho quando
+  colado noutro lugar
+- numero sempre com fonte. Sem fonte, nao afirma
+- sem travessao em prosa corrida. Virgula, dois pontos ou parenteses.
+  Travessao permitido apenas em itemizacao e no em dash do cabecalho
 -->

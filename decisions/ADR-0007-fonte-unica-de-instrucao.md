@@ -1,7 +1,8 @@
 ---
 id: ADR-0007
 titulo: AGENTS.md como fonte unica de instrucao de agente
-status: vigente
+status: superseded
+substituida_por: ADR-0008
 data: 2026-08-28
 projeto: docsquad
 autor: Leonardo Salvi

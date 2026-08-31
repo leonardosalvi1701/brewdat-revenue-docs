@@ -17,7 +17,7 @@ existe para satisfazer um revisor tecnico, ele pertence ao paper tecnico.
 
 ## Insumos obrigatorios
 - config/glossario.yaml (vocabulario canonico e proibicoes)
-- agents/rubricas/rubrica-negocio.yaml (metricas e alvos)
+- agent_instructions/rubricas/rubrica-negocio.yaml (metricas e alvos)
 - review-log/ (confusoes ja observadas em revisoes anteriores)
 - contracts/estilo-paper-negocio.md
 

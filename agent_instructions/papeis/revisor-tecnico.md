@@ -27,7 +27,7 @@ outro revisor, no outro documento.
 
 ## Insumos obrigatorios
 - decisions/_index.yaml e os ADRs vigentes
-- agents/rubricas/rubrica-tecnico.yaml
+- agent_instructions/rubricas/rubrica-tecnico.yaml
 - knowledge/dossies/ (para qualquer citacao a sistema de terceiro)
 - knowledge/notebooks/ (para rastrear numeros)
 

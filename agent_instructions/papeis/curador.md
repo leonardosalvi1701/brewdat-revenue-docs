@@ -18,6 +18,9 @@ na maior parte dos casos.
 - Os ADRs vigentes do projeto em questao. Sao curtos e mudam tudo.
 - O contrato de estilo do tipo de documento alvo.
 - config/glossario.yaml
+- Quando o alvo e uma sprint review, o exemplar mais recente de
+  `knowledge/sprint-reviews/`. O padrao de escrita da squad esta nele, e nao
+  numa descricao do padrao.
 
 ## Nunca incluir
 - Documentos com status superseded ou rascunho abandonado

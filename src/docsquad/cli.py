@@ -2,8 +2,9 @@
 
 Fluxo tipico de uma sprint:
 
-    docs sprint                      # o que esta em aberto e o que aguarda validacao
+    docs sprint --meus               # os cards que sao seus, agrupados
     docs collect                     # snapshot de cards + commits + notebooks
+    docs sprint-review               # rascunho da sua review, a partir do snapshot
     docs propose comment 2680725 --from-snapshot
     docs review                      # lista propostas pendentes
     docs show <id>                   # ve o texto exato que sera publicado
@@ -20,8 +21,10 @@ from rich.panel import Panel
 from rich.table import Table
 
 from . import collect as collect_mod
-from .config import path, settings
-from .connectors import DatabricksClient, DevOpsClient
+from . import sprint_review as review_mod
+from .config import env, path, settings
+from .connectors import (DatabricksClient, DevOpsClient, filtrar_por_pessoa,
+                         responsavel)
 from .gate import Executor, Proposal, ProposalKind, ProposalStore
 
 app = typer.Typer(help="Documentacao assistida da squad Revenue.", no_args_is_help=True)
@@ -31,27 +34,93 @@ store = ProposalStore()
 
 # ---------------- leitura ----------------
 
+# Os grupos do board na ordem em que a sprint review os apresenta. A mesma
+# ordem nas duas pontas evita que a tela e o documento contem historias
+# diferentes da mesma sprint.
+GRUPOS = [("Entregue", "concluidos"),
+          ("Em validacao", "aguardando_validacao"),
+          ("Ativos", "ativos"),
+          ("Outros", "outros")]
+
+
+def _resolver_pessoa(devops: DevOpsClient, de: str | None, meus: bool) -> str | None:
+    """Quem filtrar, em ordem de precedencia.
+
+    `--de` manda, porque e explicito na chamada. Depois `AZDO_USER_EMAIL`, que
+    existe para quem o `me()` nao consegue resolver. Por ultimo o proprio PAT,
+    que e o caminho normal e nao exige configuracao nenhuma.
+    """
+    if de:
+        return de
+    if not meus:
+        return None
+    configurado = env("AZDO_USER_EMAIL", required=False)
+    if configurado:
+        return configurado
+    eu = devops.me()
+    pessoa = eu.get("email") or eu.get("nome")
+    if not pessoa:
+        raise typer.BadParameter(
+            "Nao consegui identificar voce pela credencial. Preencha "
+            "AZDO_USER_EMAIL no .env ou use --de \"Seu Nome\".")
+    return pessoa
+
+
 @app.command()
-def sprint(iteration: str = typer.Option(None, help="Id da iteracao. Vazio = corrente.")):
-    """Mostra o board da sprint, separando o que aguarda validacao."""
-    board = DevOpsClient().sprint_board(iteration)
-    console.print(Panel(f"[bold]{board['iteration'].get('name')}[/] "
-                        f"- {board['total']} itens"))
-    for titulo, chave in [("Aguardando validacao", "aguardando_validacao"),
-                          ("Ativos", "ativos"), ("Outros", "outros")]:
+def sprint(iteration: str = typer.Option(None, help="Id da iteracao. Vazio = corrente."),
+           meus: bool = typer.Option(False, "--meus",
+                                     help="So os cards atribuidos a voce."),
+           de: str = typer.Option(None, "--de",
+                                  help="Cards de outra pessoa: nome ou email.")):
+    """Mostra o board da sprint, nos mesmos grupos da sprint review."""
+    devops = DevOpsClient()
+    pessoa = _resolver_pessoa(devops, de, meus)
+    board = devops.sprint_board(iteration)
+
+    cabecalho = f"[bold]{board['iteration'].get('name')}[/] - {board['total']} itens"
+    if pessoa:
+        cabecalho += f"   filtro: {pessoa}"
+    console.print(Panel(cabecalho))
+
+    vazio = True
+    for titulo, chave in GRUPOS:
         itens = board[chave]
+        if pessoa:
+            itens = filtrar_por_pessoa(itens, pessoa)
         if not itens:
             continue
+        vazio = False
         t = Table(title=titulo, show_lines=False)
         t.add_column("Id", style="cyan")
         t.add_column("Tipo")
         t.add_column("Estado")
         t.add_column("Titulo", overflow="fold")
+        if not pessoa:
+            t.add_column("Responsavel", overflow="fold")
         for wi in itens:
             f = wi["fields"]
-            t.add_row(str(wi["id"]), f.get("System.WorkItemType", ""),
-                      f.get("System.State", ""), f.get("System.Title", ""))
+            linha = [str(wi["id"]), f.get("System.WorkItemType", ""),
+                     f.get("System.State", ""), f.get("System.Title", "")]
+            if not pessoa:
+                linha.append(responsavel(wi)["nome"] or "[dim]sem responsavel[/]")
+            t.add_row(*linha)
         console.print(t)
+
+    if vazio and pessoa:
+        console.print(f"Nenhum card de '{pessoa}' nesta sprint. "
+                      "Confira o nome com: docs quem-sou-eu")
+
+
+@app.command("quem-sou-eu")
+def quem_sou_eu():
+    """Mostra por qual identidade voce esta lendo o board."""
+    c = DevOpsClient()
+    eu = c.me()
+    console.print(Panel(f"nome: {eu.get('nome') or '[dim]nao informado[/]'}\n"
+                        f"email: {eu.get('email') or '[dim]nao informado[/]'}\n"
+                        f"auth: {c.metodo_auth}",
+                        title="Sua identidade no DevOps"))
+    console.print("E este email que `--meus` usa para filtrar os cards.")
 
 
 @app.command()
@@ -63,8 +132,14 @@ def collect(janela: int = typer.Option(None, help="Janela de commits em dias."),
     console.print(f"[green]Snapshot salvo:[/] {destino}")
     console.print(f"  sprint: {snap['sprint']}")
     console.print(f"  cards: {snap['board']['total']}")
-    console.print(f"  commits sem card: {len(snap['commits_sem_card'])}")
-    console.print(f"  notebooks: {len(snap['notebooks'])}")
+    if snap.get("commits_erro"):
+        console.print(f"  [yellow]commits: nao coletados[/] ({snap['commits_erro']})")
+    else:
+        console.print(f"  commits sem card: {len(snap['commits_sem_card'])}")
+    if snap.get("notebooks_erro"):
+        console.print(f"  [yellow]notebooks: nao coletados[/] ({snap['notebooks_erro']})")
+    else:
+        console.print(f"  notebooks: {len(snap['notebooks'])}")
 
 
 @app.command()
@@ -83,6 +158,33 @@ def notebooks():
         t.add_row(nb["path"], str(nb["n_cells"]), str(nb["n_linhas"]),
                   "sim" if nb["tem_cabecalho_documentado"] else "[yellow]nao[/]")
     console.print(t)
+
+
+@app.command("sprint-review")
+def sprint_review(
+        de: str = typer.Option(None, "--de", help="Review de outra pessoa."),
+        snapshot: str = typer.Option(None, "--snapshot",
+                                     help="Caminho do snapshot. Vazio = o mais recente."),
+        saida: str = typer.Option(None, "--saida", help="Arquivo de destino.")):
+    """Gera o rascunho da sua sprint review no padrao de `templates/sprint-review.md`.
+
+    Preenche so o que sai do board: quais cards, em que estado, com que
+    evidencia. Objetivo, decisoes, aprendizados e proxima sprint ficam em
+    branco de proposito, porque nao estao no DevOps.
+    """
+    snap = collect_mod.carregar(snapshot)
+    pessoa = de or _resolver_pessoa(DevOpsClient(), None, meus=True)
+
+    texto = review_mod.rascunho(snap, pessoa)
+    destino = saida or review_mod.salvar(texto, snap, pessoa)
+    if saida:
+        open(saida, "w", encoding="utf-8").write(texto)
+
+    console.print(f"[green]Rascunho salvo:[/] {destino}")
+    console.print(f"  sprint: {snap.get('sprint')}   autor: {pessoa}")
+    console.print(f"  snapshot: {snap.get('_arquivo')}")
+    console.print("As secoes 1, 5, 6 e 7 estao em branco: elas nao saem do board.")
+    console.print("Depois de escrever, revise com: /revisor-negocio ou /revisor-tecnico")
 
 
 # ---------------- propostas ----------------
@@ -206,6 +308,13 @@ def config_check():
     """Verifica credenciais e politica sem escrever nada."""
     cfg = settings()
     console.print(Panel(json.dumps(cfg["gate"], indent=2), title="Politica do portao"))
+
+    try:
+        console.print(f"autenticacao: [bold]{DevOpsClient().metodo_auth}[/]")
+    except Exception as exc:
+        console.print(f"[red]sem credencial[/]\n{exc}")
+        raise typer.Exit(1)
+
     for nome, fn in [("Azure DevOps", lambda: DevOpsClient().current_iteration()),
                      ("Databricks", lambda: DatabricksClient().list_path(
                          cfg["databricks"]["paths"][0]))]:

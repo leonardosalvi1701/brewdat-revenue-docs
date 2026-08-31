@@ -1,15 +1,17 @@
 <!-- GERADO POR scripts/sync_agent_files.py. NAO EDITAR A MAO. -->
 
-<!-- Fonte: AGENTS.md e agents/. Alterar la, depois rodar o script. -->
+<!-- Fonte: agent_instructions/. Alterar la, depois rodar o script. -->
 
 # brewdat-revenue-docs
 
-Contrato de trabalho neste repositório. Vale para qualquer agente de IA: Claude
-Code, Codex, Copilot, ou outro. Ler antes de qualquer alteração.
+Contrato de trabalho neste repositório. Vale para qualquer agente de IA, seja
+qual for a ferramenta. Ler antes de qualquer alteração.
 
-Este arquivo é a fonte única. `CLAUDE.md` e `.github/copilot-instructions.md`
-são derivados, gerados por `scripts/sync_agent_files.py`. Não editar os
-derivados.
+Toda instrução de agente mora em `agent_instructions/`, e este arquivo é a
+fonte única do contrato. Os arquivos que cada ferramenta procura na raiz e em
+`.github/` são derivados, gerados por `scripts/sync_agent_files.py`, e não se
+editam à mão. Particularidades de cada ferramenta ficam em
+`agent_instructions/ferramentas/`.
 
 ## O que este repositório é
 
@@ -45,6 +47,8 @@ Você pode editar livremente:
 
 - `decisions/`, os ADRs;
 - `knowledge/dossies/`, o corpus de referência;
+- `knowledge/sprint-reviews/`, as reviews já apresentadas, que são o exemplar
+  do padrão de escrita;
 - `review-log/`, transcrição de revisão humana;
 - `outputs/`, rascunhos de documento;
 - `proposals/pending/`, via `docs propose`.
@@ -55,6 +59,10 @@ Você não edita sem pedido explícito:
 - `tests/test_gate.py` e `tests/fixtures/`, a garantia desse núcleo;
 - `config/settings.yaml`, que descreve o processo real da squad;
 - `proposals/approved/`, `rejected/` e `applied/`, que são decisão humana.
+
+Você nunca edita, em nenhuma hipótese, porque são gerados: `AGENTS.md`,
+`.claude/` e `.github/`. Alterar a fonte em `agent_instructions/` e rodar o
+script.
 
 ## Antes de fechar qualquer alteração
 
@@ -70,18 +78,48 @@ de segurança.
 
 ## Autoria de commit
 
-Não incluir `Co-Authored-By: Claude ...`, `Claude-Session: ...`, nem qualquer
-variante que atribua autoria ou coautoria a ferramenta de IA. A mensagem termina
-no corpo, sem trailer de autoria.
+A mensagem termina no corpo, sem trailer de autoria. Não incluir
+`Co-Authored-By:`, nem linha de sessão, nem qualquer outra variante que atribua
+autoria ou coautoria a ferramenta de IA, qualquer que seja o nome dela.
 
 Autoria de commit é atribuição de trabalho a pessoas, e a política do time não
-permite essa referência. O harness do Claude Code adiciona esses trailers por
+permite essa referência. Vários assistentes acrescentam esses trailers por
 padrão, então é preciso omiti-los ativamente ao montar a mensagem.
 
 ## Vocabulário
 
 `config/glossario.yaml` é canônico. Um conceito, um termo. Não introduzir
 sinônimo, nem em texto gerado, nem em nome de variável.
+
+## A sprint review
+
+A review é o documento que a squad apresenta no encerramento da sprint, e o
+padrão dela não é invenção deste repo: está em `knowledge/sprint-reviews/`,
+que guarda as reviews já apresentadas. `templates/sprint-review.md` reproduz
+esse padrão, e `contracts/estilo-sprint-review.md` descreve a voz.
+
+O fluxo é `docs collect`, depois `docs sprint-review`, que gera em `outputs/`
+um rascunho com a estrutura e os cards da pessoa, e nada mais. A prosa é de
+quem viveu a sprint, ou do papel `escritor-sprint-review` a partir da
+transcrição dela.
+
+O gerador não escreve narrativa de propósito. O card registra o que foi feito;
+por que foi feito e o que ficou decidido não estão em campo nenhum do DevOps.
+Texto plausível sobre trabalho que ninguém descreveu é pior que uma lacuna
+visível, porque a lacuna alguém preenche.
+
+## O padrão de card
+
+`templates/card.md` define o corpo do card: Descrição, DoR, DoD e lista de
+tarefas. `templates/card-comment.md` define o comentário de atualização, e
+`contracts/estilo-card.md` descreve a voz dos dois.
+
+O padrão foi extraído dos cards reais da S3-Q3-26, e não desenhado. Ao alterá-lo,
+conferir contra o snapshot em `knowledge/cards/` antes de assumir que o
+contrato está certo. Ver ADR-0010.
+
+O DoD tem quatro blocos e se escolhe um, pela natureza do trabalho. O card só
+vai para `Done` com o bloco marcado e o QA registrado em comentário.
 
 ## Cards e decisões não se misturam
 
@@ -92,10 +130,13 @@ escrita manual deliberada.
 
 ## Os papéis de agente
 
-`agents/` contém os prompts dos papéis. Ao assumir um papel, ler o arquivo
-inteiro e seguir a rubrica correspondente em `agents/rubricas/`:
+`agent_instructions/papeis/` contém os prompts dos papéis. Ao assumir um papel,
+ler o arquivo inteiro e seguir a rubrica correspondente em
+`agent_instructions/rubricas/`:
 
 - `curador.md`: decide o que entra no contexto dos demais;
+- `escritor-sprint-review.md`: escreve a review a partir do rascunho gerado,
+  com `contracts/estilo-sprint-review.md`;
 - `revisor-negocio.md`: otimiza compreensão, com `rubrica-negocio.yaml`;
 - `revisor-tecnico.md`: otimiza lastro, com `rubrica-tecnico.yaml`.
 
@@ -105,7 +146,26 @@ resolve esse conflito sozinho, e nem deveria. O autor arbitra.
 ## Estilo de texto gerado
 
 - português do Brasil;
-- o template manda: `templates/` define os cinco padrões de documento, e
-  `contracts/estilo-card.md` define o formato de comentário de card;
+- o template manda: `templates/` define os seis padrões de documento, e
+  `contracts/` define o estilo de cada um que já tem contrato escrito, hoje
+  comentário de card e sprint review;
 - toda afirmação com número cita a fonte, com data;
 - incerteza declarada como incerteza, nunca omitida.
+
+---
+
+# Ferramenta: GitHub Copilot
+
+## Onde ele acha instrucao
+`.github/copilot-instructions.md`, que e copia gerada do contrato inteiro, e
+nao ponteiro. O Copilot injeta o conteudo do arquivo direto no contexto e nao
+se pode contar com ele para seguir um ponteiro, entao aqui a copia e o formato
+que funciona. Ela e gerada e verificada em CI, entao nao diverge.
+
+## Papeis
+Prompt files em `.github/prompts/*.prompt.md`, com `mode: agent`. Invocar por
+`/curador`, `/revisor-negocio` ou `/revisor-tecnico` no Copilot Chat.
+
+## Autoria de commit
+A mensagem de commit sugerida pelo Copilot as vezes traz trailer de coautoria.
+Remover antes de commitar, conforme o contrato.

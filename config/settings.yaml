@@ -1,24 +1,38 @@
 # Configuracao da squad. Nada de segredo aqui, segredos ficam no .env
 #
 # Os estados e tipos abaixo foram conferidos contra os cards reais das sprints
-# S2 e S3 do Q3/26 em 28/08/2026. O projeto usa processo customizado da Ambev,
-# nao o Scrum padrao do Azure DevOps: nao existem os estados New, Approved,
-# Committed, In Progress nem Ready for Validation.
+# S2 e S3 do Q3/26 em 28/08/2026, e os estados de saida em 31/08/2026. O
+# projeto usa processo customizado da Ambev, nao o Scrum padrao do Azure
+# DevOps: nao existem os estados New, Approved, Committed, In Progress nem
+# Ready for Validation.
 
 squad:
   nome: Revenue
   produto: Promo Phoenix
 
 devops:
+  # Onde o board vive. Nao e segredo: sai da url do board e e igual para toda a
+  # squad, entao mora aqui e nao no .env de cada um. As variaveis de ambiente
+  # AZDO_ORG_URL, AZDO_PROJECT e AZDO_TEAM continuam valendo e tem precedencia,
+  # para quem precisa apontar para outro time sem editar arquivo versionado.
+  org_url: https://dev.azure.com/AMBEV-SA
+  project: AMBEV-ANALYTICS-DATA-CHAPTER-SALES
+  # nome do time como aparece no board, com espacos. O codigo codifica a url.
+  team: Squad Revenue DI
+
   # tipos de work item que a squad usa. O executor recusa criar card de tipo
   # fora desta lista, mesmo com aprovacao humana.
   tipos: [Technical Story, Analysis Activity, Business Story, Bug, Action]
 
-  # nao existe estado de validacao explicito neste processo. A validacao
-  # acontece na passagem para Done, que e sempre humana e sempre na interface.
-  # Deixar vazio e honesto: preencher com um estado inventado faria o board
-  # mentir. Corrigir quando o processo ganhar um estado de validacao.
-  estados_validacao: []
+  # o card sai da mao da squad e fica com QA. E o estado que a secao "Em
+  # validacao" da sprint review descreve: entrega feita, aceite pendente de
+  # terceiro. String conferida contra os cards da S3-Q3-26 em 31/08/2026.
+  estados_validacao: [Waiting-QA]
+
+  # entregue de fato, aceite incluido. Alimenta a secao "Entregue" da sprint
+  # review. Waiting-QA nao entra aqui: trabalho concluido pela squad, sim,
+  # mas quem fecha e o QA, e a review precisa mostrar a diferenca.
+  estados_concluidos: [Done]
 
   estados_ativos: [In-Refinement, Waiting-Development, Developing]
 
@@ -34,6 +48,7 @@ devops:
   # transicoes que NUNCA sao aplicadas por automacao, nem aprovadas.
   # Fechar card e decisao humana feita na interface do DevOps.
   transicoes_bloqueadas:
+    - [Waiting-QA, Done]
     - [Developing, Done]
     - [Waiting-Development, Done]
     - [In-Refinement, Done]
