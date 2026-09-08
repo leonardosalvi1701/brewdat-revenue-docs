@@ -1,12 +1,12 @@
 # brewdat-revenue-docs
 
-Repositorio de documentacao assistida da squad Revenue. Conecta Azure DevOps,
-GitHub e Databricks para ajudar o time a documentar o que foi feito em outros
-ambientes, sempre sob validacao humana explicita.
-
-Este repo nao contem modelagem. A modelagem vive em
-`brewdat-saz-saz-sales-revenue-promophoenix-volume-mlp`. A ligacao entre os
-dois se faz por referencia, nunca por copia de codigo.
+Repositorio de documentacao assistida da squad Revenue, feito para generalizar:
+cada pessoa do time liga as proprias credenciais e o agente de IA que ja usa, e
+passa a interagir com os proprios cards de forma automatica e dinamica. O
+agente le Azure DevOps, GitHub e Databricks, e ajuda a automatizar etapas de
+documentacao e de validacao de tarefas, como escrever o rascunho da sprint
+review ou o comentario de um card a partir do que de fato mudou. Sempre sob
+validacao humana explicita: o agente nunca escreve nada sozinho, so propoe.
 
 ---
 
@@ -39,25 +39,83 @@ python -m venv .venv && source .venv/bin/activate
 pip install -e .
 ```
 
-### 2. Autenticar no Azure DevOps
+### 2. Autenticar nas fontes de dado
+
+```bash
+cp .env.example .env    # org, projeto e time ja vem preenchidos
+```
+
+#### 2.1 Azure DevOps (obrigatorio)
 
 Duas formas, na ordem de preferencia do repo:
 
 - `az login`, se voce tem o Azure CLI na maquina. Funciona sem tocar em
   `.env`.
-- Sem Azure CLI, ou em sessao nao interativa: copie `.env.example` para
-  `.env` e preencha `AZDO_PAT`, um Personal Access Token seu com permissao
-  de leitura de Work Items.
+- Sem Azure CLI, ou em sessao nao interativa: preencha `AZDO_PAT` no `.env`,
+  um Personal Access Token seu com permissao de leitura de Work Items
+  (gerado em `https://dev.azure.com/AMBEV-SA/_usersSettings/tokens`).
 
 ```bash
-cp .env.example .env    # org, projeto e time ja vem preenchidos
 docs config-check       # valida credenciais sem escrever nada
 docs quem-sou-eu        # confirma como o DevOps te identifica
 ```
 
-Tokens de GitHub e Databricks sao opcionais, e so ampliam o que o snapshot
-coleta (commits e inventario de notebook). Sem eles, o snapshot registra a
-ausencia em vez de falhar.
+#### 2.2 GitHub (opcional: evidencia de commit)
+
+Sem isso, o snapshot sai sem evidencia de commit e registra a ausencia em
+vez de falhar. Com isso, `docs collect` traz os commits de cada repo
+configurado e os correlaciona ao card pela mensagem (`AB#2680725`,
+`#2680725` ou `[2680725]`), e essa correlacao vira materia-prima para a
+sprint review e para o comentario de card.
+
+1. Gere um Personal Access Token no GitHub (Settings > Developer settings >
+   Personal access tokens), com escopo de leitura de conteudo dos repos que
+   voce quer acompanhar (`repo`, no classico; `Contents: Read-only`, no
+   fine-grained). Se a org `BrewDat` usa SSO, autorize o token para ela logo
+   depois de criar.
+2. Preencha `GITHUB_TOKEN` no `.env`.
+3. Confira se o repo que voce quer acompanhar esta em
+   `config/settings.yaml`, em `github.repos`. E uma lista, nao um campo
+   unico: se voce trabalha em mais de um repo (por exemplo o
+   `BrewDat/brewtiful`, alem do repo do modelo de volume ja configurado),
+   acrescente uma linha por repo:
+
+   ```yaml
+   github:
+     repos:
+       - BrewDat/brewdat-saz-saz-sales-revenue-promophoenix-volume-mlp
+       - BrewDat/brewtiful
+   ```
+
+   Essa lista e compartilhada pela squad inteira, entao editar
+   `config/settings.yaml` e igual a editar `estados_validacao` ou qualquer
+   outro pedaco do processo real: vale para todo mundo, confira com o time
+   antes de mudar.
+4. Referencie o numero do card na mensagem de commit (`AB#2680725` ou
+   `#2680725`) para a correlacao funcionar. Commit sem referencia cai em
+   `commits_sem_card` no snapshot, visivel mas nao associado a nenhum card.
+
+#### 2.3 Databricks (opcional: inventario de notebook)
+
+Sem isso, o snapshot sai sem inventario de notebook. Com isso, o agente
+sabe quais notebooks mudaram e quais ainda nao tem cabecalho documentado
+(`docs notebooks`), o que tambem vira materia-prima para documentacao e
+comentario de card.
+
+1. No workspace do Databricks, va em User Settings > Developer > Access
+   tokens e gere um token novo. Ele so precisa do acesso padrao do seu
+   usuario ao workspace, nenhum escopo de admin.
+2. Preencha `DATABRICKS_HOST` (a URL do seu workspace, por exemplo
+   `https://adb-1820723078635205.5.azuredatabricks.net`) e
+   `DATABRICKS_TOKEN` no `.env`.
+3. Confira se os caminhos que voce quer inventariar estao em
+   `config/settings.yaml`, em `databricks.paths`. Mesma logica do GitHub:
+   lista compartilhada, acrescente uma linha por caminho que faltar.
+
+```bash
+docs config-check       # valida DevOps e Databricks, nao checa GitHub
+docs collect            # se o GitHub estiver certo, sai sem commits_erro
+```
 
 ### 3. Ligar ao agente de IA que voce usa
 
@@ -92,7 +150,13 @@ inventando o que o board nao registra.
 Nenhum agente chama a API do DevOps para comentar, por mais autonomia que a
 ferramenta permita configurar: e a regra que nao se negocia deste repo, ver
 acima. O caminho e sempre proposta, aprovacao, execucao, e so o ultimo passo
-escreve de fato:
+escreve de fato.
+
+`rascunho.md`, abaixo, e onde a automacao acontece: e o agente que escreve
+esse arquivo, no formato de `templates/card-comment.md` e no estilo de
+`contracts/estilo-card.md`, usando como fonte o card, os commits que
+referenciaram o card (se o GitHub estiver conectado) e o notebook que mudou
+(se o Databricks estiver conectado). Voce so aponta o arquivo:
 
 ```bash
 docs propose comment 2680725 --file rascunho.md   # agente: proposals/pending/*.json
