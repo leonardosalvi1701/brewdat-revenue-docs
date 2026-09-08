@@ -25,6 +25,31 @@ com titulo que diz o que foi feito, e nao o numero do card.
 - sem travessao em prosa corrida. Virgula, dois pontos ou parenteses.
   Travessao permitido apenas em itemizacao.
 
+## Formato do bloco
+Dois formatos convivem no exemplar. A escolha e pelo conteudo do bloco, nao
+por preferencia de quem escreve.
+
+Prosa corrida direta serve para um bloco com poucas decisoes concentradas:
+um bug, uma negociacao de escopo, um ajuste pontual.
+
+Rotulo fixo serve para EDA e modelagem, onde o bloco carrega muito metodo e
+quem le precisa achar as tres perguntas sem ler tudo. Cada rotulo e prosa por
+baixo, nao lista:
+
+**O que foi realizado.** O resultado, numa frase, sem metodo.
+
+**Por que foi realizado.** O problema que motivou a atividade, nao a
+descricao da atividade.
+
+**Como foi realizado.** O metodo e os numeros, com fonte.
+
+Fecha com um paragrafo **Ou seja:**, formatado como citacao, que sintetiza a
+decisao que o bloco sustenta. E o paragrafo que quem le rapido precisa achar
+sem ler o resto do bloco.
+
+O exemplar da S2 e o da S3 usam os dois formatos lado a lado, no mesmo
+documento. Nenhum dos dois substitui os fechadores abaixo.
+
 ## Fechadores
 Ao fim de um bloco, so quando houver o que dizer: `Pontos Positivos`,
 `Pontos Negativos`, `Pontos de Atencao`, `Proximos Passos`. Um bullet por

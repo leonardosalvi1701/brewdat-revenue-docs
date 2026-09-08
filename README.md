@@ -26,6 +26,88 @@ engano, porque fechar card e decisao humana feita na interface do DevOps.
 
 ---
 
+## Como comecar
+
+Passo a passo, do clone ao primeiro comentario publicado num card.
+
+### 1. Clonar e instalar
+
+```bash
+git clone https://github.com/leonardosalvi1701/brewdat-revenue-docs.git
+cd brewdat-revenue-docs
+python -m venv .venv && source .venv/bin/activate
+pip install -e .
+```
+
+### 2. Autenticar no Azure DevOps
+
+Duas formas, na ordem de preferencia do repo:
+
+- `az login`, se voce tem o Azure CLI na maquina. Funciona sem tocar em
+  `.env`.
+- Sem Azure CLI, ou em sessao nao interativa: copie `.env.example` para
+  `.env` e preencha `AZDO_PAT`, um Personal Access Token seu com permissao
+  de leitura de Work Items.
+
+```bash
+cp .env.example .env    # org, projeto e time ja vem preenchidos
+docs config-check       # valida credenciais sem escrever nada
+docs quem-sou-eu        # confirma como o DevOps te identifica
+```
+
+Tokens de GitHub e Databricks sao opcionais, e so ampliam o que o snapshot
+coleta (commits e inventario de notebook). Sem eles, o snapshot registra a
+ausencia em vez de falhar.
+
+### 3. Ligar ao agente de IA que voce usa
+
+O repo roda em qualquer agente que leia instrucao de arquivo. Toda instrucao
+mora em `agent_instructions/`, e os caminhos que cada ferramenta espera
+(`AGENTS.md`, `.claude/`, `.github/`, ver tabela abaixo) sao gerados a partir
+dela.
+
+```bash
+python scripts/sync_agent_files.py           # regenera os derivados
+python scripts/sync_agent_files.py --check   # falha se algum estiver atrasado
+```
+
+Depois disso o agente ja enxerga o contrato e os papeis — `/curador`,
+`/escritor-sprint-review`, `/revisor-negocio`, `/revisor-tecnico`, ou o
+equivalente da ferramenta que voce usa — sem configuracao extra.
+
+### 4. Puxar a sprint e gerar o paper da review
+
+```bash
+docs collect                       # snapshot: cards + commits + notebooks
+docs sprint --meus                 # conferir os seus cards, nos grupos da review
+docs sprint-review                 # rascunho da sua parte, em outputs/
+```
+
+Dai em diante e trabalho do papel `/escritor-sprint-review` (ver "A sprint
+review" abaixo): ele le o rascunho e escreve a prosa a partir dele, nunca
+inventando o que o board nao registra.
+
+### 5. Comentar num card, sem escrever direto no DevOps
+
+Nenhum agente chama a API do DevOps para comentar, por mais autonomia que a
+ferramenta permita configurar: e a regra que nao se negocia deste repo, ver
+acima. O caminho e sempre proposta, aprovacao, execucao, e so o ultimo passo
+escreve de fato:
+
+```bash
+docs propose comment 2680725 --file rascunho.md   # agente: proposals/pending/*.json
+docs review                                       # o que esta pendente
+docs show a3f9c210                                # o texto exato que sera publicado
+docs approve a3f9c210 --by "Seu Nome"              # humano: aprova e se identifica
+docs apply --all --dry-run                        # confere antes
+docs apply --all                                  # humano: so agora escreve no DevOps
+```
+
+`docs propose` e o unico comando de escrita que um agente roda por conta
+propria. `approve` e `apply` sao sempre seus.
+
+---
+
 ## Roda em qualquer agente de IA
 
 Toda instrucao de agente mora em `agent_instructions/`, e nada de instrucao
@@ -43,12 +125,8 @@ configurar. Esses caminhos existem, mas sao gerados e nao se editam:
 
 O Copilot recebe copia, e nao ponteiro, porque injeta o conteudo do arquivo
 direto no contexto e nao se pode contar com ele para abrir o alvo de um
-ponteiro. A copia e gerada e verificada em CI, entao nao diverge.
-
-```bash
-python scripts/sync_agent_files.py           # regenera os derivados
-python scripts/sync_agent_files.py --check   # falha se algum estiver atrasado
-```
+ponteiro. A copia e gerada e verificada em CI, entao nao diverge. Como
+regenerar e o passo 3 de "Como comecar", acima.
 
 Os papeis de `agent_instructions/papeis/` viram slash command nas duas
 ferramentas que suportam: `/curador`, `/escritor-sprint-review`,
@@ -57,47 +135,9 @@ Os wrappers nao contem instrucao propria, so apontam para o arquivo do papel,
 para nao divergir. O que muda de uma ferramenta para outra, e so isso, esta em
 `agent_instructions/ferramentas/`.
 
----
-
-## Instalacao
-
-```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -e .
-cp .env.example .env    # org, projeto e time ja vem preenchidos
-docs config-check       # valida credenciais sem escrever nada
-docs quem-sou-eu        # confirma como o DevOps te identifica
-```
-
-Na pratica voce preenche uma linha: `AZDO_PAT`, o seu, com leitura de Work
-Items. Org, projeto e time sao os mesmos para toda a squad e ja vem no
-`.env.example`.
-
-Os tokens de GitHub e Databricks sao opcionais: sem eles o snapshot sai sem
-evidencia de commit ou sem inventario de notebook, e registra a ausencia em vez
-de falhar.
-
----
-
-## Fluxo de uma sprint
-
-```bash
-docs sprint --meus                 # so os seus cards, nos grupos da review
-docs sprint                        # o board inteiro, com responsavel por card
-docs collect                       # snapshot: cards + commits + notebooks
-docs notebooks                     # inventario, quais nao tem cabecalho documentado
-
-docs sprint-review                 # rascunho da sua parte da review, em outputs/
-/escritor-sprint-review            # o agente escreve a partir do rascunho
-/revisor-tecnico                   # e depois revisa
-
-docs propose comment 2680725 --file rascunho.md
-docs review                        # propostas pendentes
-docs show a3f9c210                 # o texto exato que sera publicado
-docs approve a3f9c210 --by "Leo"
-docs apply --all --dry-run         # confere antes
-docs apply --all
-```
+Alem de `docs collect`, `docs sprint` e `docs notebooks` (inventario de quais
+notebooks nao tem cabecalho documentado) tambem ajudam a olhar o board antes
+de escrever.
 
 ---
 

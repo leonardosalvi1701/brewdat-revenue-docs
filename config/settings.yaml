@@ -1,10 +1,18 @@
 # Configuracao da squad. Nada de segredo aqui, segredos ficam no .env
 #
 # Os estados e tipos abaixo foram conferidos contra os cards reais das sprints
-# S2 e S3 do Q3/26 em 28/08/2026, e os estados de saida em 31/08/2026. O
+# S2 e S3 do Q3/26 em 28/08/2026, e os estados de saida em 31/08/2026,
+# reconferidos contra S3 e S4 em 08/09/2026 com a sprint S4 em andamento. O
 # projeto usa processo customizado da Ambev, nao o Scrum padrao do Azure
 # DevOps: nao existem os estados New, Approved, Committed, In Progress nem
 # Ready for Validation.
+#
+# O processo tambem nao e consistente dentro do proprio board: In-QA e
+# Waiting-QA convivem como nomes diferentes para o mesmo conceito ("com QA"),
+# sem regra clara de qual tipo de work item usa qual (a amostra de S3+S4 e
+# pequena demais para afirmar uma regra: 1 card em Waiting-QA, 2 em In-QA).
+# Antes de tratar uma string nova como estado novo, checar se nao e so mais
+# um sinonimo do que ja existe.
 
 squad:
   nome: Revenue
@@ -24,17 +32,25 @@ devops:
   # fora desta lista, mesmo com aprovacao humana.
   tipos: [Technical Story, Analysis Activity, Business Story, Bug, Action]
 
-  # o card sai da mao da squad e fica com QA. E o estado que a secao "Em
-  # validacao" da sprint review descreve: entrega feita, aceite pendente de
-  # terceiro. String conferida contra os cards da S3-Q3-26 em 31/08/2026.
-  estados_validacao: [Waiting-QA]
+  # o card sai da mao da squad e fica esperando acao de terceiro: QA (que
+  # aparece como Waiting-QA num tipo de work item e In-QA noutro, mesmo
+  # conceito) ou liberacao em producao (Waiting-Production). E o estado que
+  # a secao "Em validacao" da sprint review descreve: entrega feita da parte
+  # da squad, aceite ou deploy pendente de terceiro. Conferido contra os
+  # cards da S3 e da S4-Q3-26 em 08/09/2026.
+  estados_validacao: [Waiting-QA, In-QA, Waiting-Production]
 
   # entregue de fato, aceite incluido. Alimenta a secao "Entregue" da sprint
-  # review. Waiting-QA nao entra aqui: trabalho concluido pela squad, sim,
-  # mas quem fecha e o QA, e a review precisa mostrar a diferenca.
+  # review. Nada em estados_validacao entra aqui: trabalho concluido pela
+  # squad, sim, mas quem fecha e o terceiro, e a review precisa mostrar a
+  # diferenca.
   estados_concluidos: [Done]
 
-  estados_ativos: [In-Refinement, Waiting-Development, Developing]
+  # Refinement-Done e o equivalente, em Business Story, do Waiting-Development
+  # de Technical Story: refino terminado, desenvolvimento ainda nao comecou.
+  # Confirmado contra os dois cards com esse estado na S4-Q3-26 em 08/09/2026,
+  # nenhum dos dois com comentario ou entrega registrada.
+  estados_ativos: [In-Refinement, Waiting-Development, Developing, Refinement-Done]
 
   # transicoes que o executor tem permissao de aplicar, mesmo aprovadas.
   # Lista conservadora: cobre so o avanco natural do refinamento ate o
@@ -49,9 +65,12 @@ devops:
   # Fechar card e decisao humana feita na interface do DevOps.
   transicoes_bloqueadas:
     - [Waiting-QA, Done]
+    - [In-QA, Done]
+    - [Waiting-Production, Done]
     - [Developing, Done]
     - [Waiting-Development, Done]
     - [In-Refinement, Done]
+    - [Refinement-Done, Done]
 
 github:
   repos:

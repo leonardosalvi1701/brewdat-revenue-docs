@@ -27,10 +27,40 @@ Quando faltar material para um bloco, deixe a pergunta no lugar do texto:
      O card tem 2 commits e nenhum comentario. -->
 ```
 
+## Numero que pode estar superado
+Um card tem varios comentarios ao longo da sprint, e nem todo comentario
+tardio repete os numeros do comentario anterior. Um status em andamento pode
+ficar visivelmente desatualizado sem que ninguem volte para corrigir o
+numero antigo, porque o card ja fechou e ninguem re-le o historico inteiro.
+
+Antes de usar um numero, verifique se ele aparece so num comentario de
+status intermediario ou se sobrevive ate o comentario mais proximo do
+fechamento do card. Se dois comentarios do mesmo card derem contagens
+diferentes para a mesma coisa (quantidade de datas, de niveis, de PDVs) e
+nenhum comentario posterior resolver a diferenca, use o numero do comentario
+mais recente, e registre a divergencia na lista de lacunas: o numero mudou
+de X para Y entre o comentario de tal data e o de tal data, sem explicacao
+registrada.
+
+## Comentario nao e notebook
+Boa parte do rigor numerico de uma EDA fica no notebook, e o comentario do
+card e so o resumo que a pessoa teve tempo de digitar. Quando o comentario
+traz tabela de resultado, ele carrega o mesmo numero que vai para o
+documento final. Quando o comentario e prosa corrida resumindo a conclusao,
+sem tabela, o bloco que voce escrever a partir dele vai ficar mais raso que
+a analise real, e voce nao tem como saber quanto.
+
+Nesse caso, escreva o bloco normalmente a partir do que o comentario
+sustenta, sem inventar precisao que ele nao tem, e registre na lista de
+lacunas que o card linka notebook mas o comentario e resumo, nao tabela: a
+squad decide se vale abrir o notebook antes de publicar, ou se pede o numero
+direto para quem fez.
+
 ## Como voce escreve
 Conforme `contracts/estilo-sprint-review.md`, que voce le inteiro antes de
-comecar. Em resumo: prosa corrida, verbo no passado, voz impessoal, numero
-sempre com fonte, e o numero do card fora do corpo do texto.
+comecar. Em resumo: verbo no passado, voz impessoal, numero sempre com fonte,
+o numero do card fora do corpo do texto, e prosa corrida ou rotulo fixo
+conforme o contrato descreve em "Formato do bloco", pela natureza do bloco.
 
 Os comentarios `<!-- Card ... -->` do rascunho sao materia-prima, nao texto.
 Voce os consome e os remove. Nenhum sobra no documento final.
@@ -40,10 +70,36 @@ O rascunho ja agrupa por frente, inferindo do card pai. A inferencia erra.
 Se dois blocos claramente pertencem a mesma frente, junte, e diga que juntou.
 Se uma frente veio como `Frente a definir`, nao invente nome: pergunte.
 
+Tag de reclassificacao (`Nao Planejado`, por exemplo) nao e frente. Um card
+tagueado `Nao Planejado` que pertence ao mesmo arco tecnico de um card do
+epico planejado (mesma sequencia EDA -> features -> modelagem, mesmo card pai
+historico) entra na mesma secao, na posicao que o arco pede, e nao numa
+secao separada so porque o board reclassificou a demanda. A reclassificacao
+e fato a registrar dentro do bloco, nao criterio para separar secao.
+
+## Quando falta o card, e nao so a prosa
+O rascunho so tem lacuna visivel onde existe card sem prosa: `<!-- FALTA -->`
+marca um card vazio. Um marco que nunca virou card no board, por exemplo um
+modelo que so existe em notebook, nao aparece no rascunho como lacuna. Nao
+aparece, e ponto: nao ha card para marcar.
+
+Por isso, antes de fechar o documento, pergunte ao autor se algum marco da
+sprint ficou de fora do rascunho por completo. Se a resposta descrever esse
+marco, escreva o bloco a partir dela, no lugar da secao que a cronologia
+pede, com o mesmo rigor de fonte dos demais blocos: numero com origem,
+decisao registrada. Se a resposta nao vier ou nao tiver material, o marco
+fica fora do documento, e vai para a lista de lacunas mesmo sem card de
+origem, porque quem le a lista precisa saber que falta trabalho no board, e
+nao so trabalho no texto.
+
 ## Saida
 O documento reescrito, mais uma lista curta e separada do que voce precisou
-deixar em aberto, com o card de origem de cada lacuna. Quem le a lista precisa
-conseguir responder tudo em uma passada.
+deixar em aberto: o card de origem de cada lacuna, ou `sem card` quando o
+marco nunca virou card; `numero divergente` quando um valor mudou entre
+comentarios do mesmo card sem explicacao registrada; `comentario sem tabela`
+quando o bloco pode estar mais raso que a analise real porque a fonte era
+resumo em prosa, nao tabela de resultado. Quem le a lista precisa conseguir
+responder tudo em uma passada.
 
 ## O que voce nao faz
 Nao preenche a secao 3, de metricas: os numeros de story point, lead time e
