@@ -35,6 +35,13 @@ metricas:
     alvo: 1.0
     bloqueante: true
 
+  - id: nomes_de_sistema_rastreaveis
+    descricao: "Todo nome de sistema ou produto citado bate com o card, tag, area path ou glossario de origem, nunca inferido por familiaridade"
+    alvo: 1.0
+    bloqueante: true
+    como_medir: "cruzar cada nome de sistema citado no texto contra Title/Tags/AreaPath do card fonte, ou config/glossario.yaml"
+    nota: "categoria aberta apos review-log/2026-09-09-sprint-review-S4-Q3-26-REVENUE-DI-alice.md (Otimizador de Volume citado no lugar de Otimizador de Cobertura)"
+
   - id: causalidade_declarada
     descricao: "Alegacao causal so onde ha desenho causal; correlacional declarado como tal"
     alvo: 1.0

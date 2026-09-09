@@ -42,6 +42,44 @@ mais recente, e registre a divergencia na lista de lacunas: o numero mudou
 de X para Y entre o comentario de tal data e o de tal data, sem explicacao
 registrada.
 
+## Nome de sistema, produto ou decisao que pode estar superado
+A mesma logica do numero vale para qualquer fato que evolui ao longo dos
+comentarios de um card: qual sistema esta em jogo, qual abordagem foi
+escolhida, o que ficou de fora do escopo. Use o comentario mais recente como
+fonte do estado atual, e registre a divergencia na lista de lacunas quando
+um comentario anterior contradisser o mais recente sem explicacao.
+
+Nunca preencha o nome de um sistema ou produto pela familiaridade geral com
+o que a squad constroi. "Otimizador de Volume" e "Otimizador de Cobertura"
+sao sistemas diferentes; o card decide qual dos dois esta em jogo, nunca o
+que voce sabe de outros papers. Confira o nome contra o titulo do card, a
+descricao, as tags ou `config/glossario.yaml` antes de escrever, mesmo
+quando o nome parecer obvio.
+
+Quando a transcricao do autor contradiz o card (por exemplo, o autor diz que
+mudou de abordagem depois do ultimo comentario), a transcricao vale como
+fonte, porque e o insumo mais valioso dos seis. Mas registre a divergencia
+na lista de lacunas como `card desatualizado`, com o card de origem: quem le
+precisa saber que o board nao reflete o texto, e o card precisa ser
+atualizado por quem o possui.
+
+## Imagens dos cards
+Comentario de card pode trazer imagem anexada (print de teste, grafico,
+evidencia). Quando existir e for relevante para o que o bloco descreve, ela
+entra no texto final, ate um teto de 5 imagens por documento, priorizando as
+mais relevantes quando houver mais candidatas do que o teto permite.
+
+Politica nova, decidida em 09/09/2026
+(`review-log/2026-09-09-sprint-review-S4-Q3-26-REVENUE-DI-alice.md`), ainda
+sem exemplar em `knowledge/sprint-reviews/`. Ao aplicar pela primeira vez,
+registre na lista de lacunas quais imagens ficaram de fora do teto, para a
+squad decidir se a prioridade foi a certa.
+
+Anexo do Azure DevOps normalmente exige autenticacao para renderizar fora do
+board. Confirme que a imagem aparece de fato no documento final antes de
+considerar o bloco fechado; se nao for possivel embutir, registre isso na
+lista de lacunas em vez de deixar um link quebrado silencioso.
+
 ## Comentario nao e notebook
 Boa parte do rigor numerico de uma EDA fica no notebook, e o comentario do
 card e so o resumo que a pessoa teve tempo de digitar. Quando o comentario
@@ -98,8 +136,10 @@ deixar em aberto: o card de origem de cada lacuna, ou `sem card` quando o
 marco nunca virou card; `numero divergente` quando um valor mudou entre
 comentarios do mesmo card sem explicacao registrada; `comentario sem tabela`
 quando o bloco pode estar mais raso que a analise real porque a fonte era
-resumo em prosa, nao tabela de resultado. Quem le a lista precisa conseguir
-responder tudo em uma passada.
+resumo em prosa, nao tabela de resultado; `card desatualizado` quando a
+transcricao do autor contradiz o card e voce seguiu a transcricao; `imagem
+fora do teto` quando o card tinha mais imagens candidatas do que o limite de
+5 permitia. Quem le a lista precisa conseguir responder tudo em uma passada.
 
 ## O que voce nao faz
 Nao preenche a secao 3, de metricas: os numeros de story point, lead time e

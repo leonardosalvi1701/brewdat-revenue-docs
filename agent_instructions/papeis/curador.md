@@ -21,6 +21,9 @@ na maior parte dos casos.
 - Quando o alvo e uma sprint review, o exemplar mais recente de
   `knowledge/sprint-reviews/`. O padrao de escrita da squad esta nele, e nao
   numa descricao do padrao.
+- Anexos de imagem nos comentarios do card, quando o alvo e sprint review.
+  Sao candidatas a entrar no documento; o escritor decide o teto (5) e a
+  prioridade entre elas, conforme `contracts/estilo-sprint-review.md`.
 
 ## Nunca incluir
 - Documentos com status superseded ou rascunho abandonado

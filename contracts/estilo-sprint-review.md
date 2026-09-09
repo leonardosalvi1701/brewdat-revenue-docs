@@ -58,6 +58,14 @@ item, especifico o suficiente para mudar comportamento na proxima sprint.
 Fechador sem conteudo real nao entra. Bullet generico ocupa a linha em que
 caberia o aprendizado.
 
+## Imagens
+Ate 5 por documento, as mais relevantes quando o card trouxer mais candidatas
+do que isso. Vem do anexo do comentario do card, nunca gerada ou buscada por
+fora. Politica registrada em 09/2026
+(`review-log/2026-09-09-sprint-review-S4-Q3-26-REVENUE-DI-alice.md`), ainda
+sem exemplar no corpus: ajuste este paragrafo quando o primeiro exemplar com
+imagem existir e o padrao real divergir do que esta aqui.
+
 ## O que a review precisa dizer e o card nao diz
 Um bloco bom responde tres coisas: o que foi feito, por que foi feito, e o que
 ficou decidido. O card responde a primeira. As outras duas so existem se quem

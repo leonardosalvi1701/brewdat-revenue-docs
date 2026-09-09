@@ -40,6 +40,16 @@ termos:
     definicao: "quantidade minima de caixas recomendada pelo Otimizador de Volume 1.0"
     publico: ambos
 
+  otimizador_de_cobertura:
+    canonico: "Otimizador de Cobertura"
+    definicao: "sistema de recomendacao de cobertura da squad, distinto do Otimizador de Volume 1.0 que gera o Qmin"
+    proibidos: ["Otimizador de Volume", "modelo de volume"]
+    publico: ambos
+    nota: >
+      Esboco minimo: confundido com o Otimizador de Volume no rascunho de
+      09/09/2026 (review-log/2026-09-09-sprint-review-S4-Q3-26-REVENUE-DI-alice.md).
+      Definicao completa ainda por confirmar com a squad.
+
 enquadramentos_obrigatorios:
   summer: >
     O Summer estabeleceu a fundacao. Ao construir sobre ela identificamos

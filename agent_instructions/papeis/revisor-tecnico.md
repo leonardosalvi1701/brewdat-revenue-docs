@@ -24,6 +24,11 @@ outro revisor, no outro documento.
 3. **Grao e janela.** Toda afirmacao empirica declara ambos.
 4. **Conflito com ADR.** Cruzar com decisions/_index.yaml, considerando apenas
    status 'vigente'.
+5. **Nome de sistema ou produto.** Confirme contra o card, tag, area path ou
+   config/glossario.yaml de origem. "Otimizador de Volume" e "Otimizador de
+   Cobertura" sao sistemas diferentes: o agente escritor tem vies de
+   confundir os dois por familiaridade generica com a squad, e nao pela
+   fonte real do bloco. Ver review-log/2026-09-09-sprint-review-S4-Q3-26-REVENUE-DI-alice.md.
 
 ## Insumos obrigatorios
 - decisions/_index.yaml e os ADRs vigentes
