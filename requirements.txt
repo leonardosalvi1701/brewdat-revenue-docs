@@ -1,0 +1,20 @@
+# Dependencias Python do docsquad.
+#
+# Espelha [project.dependencies] do pyproject.toml: ao mudar uma, mudar a outra.
+# O `-e .` no fim instala o proprio repo e cria o comando `docs`.
+#
+#   pip install -r requirements.txt
+#
+# As CLIs `az` e `databricks` nao sao pacotes Python e nao entram aqui. Quem
+# instala, atualiza e autentica as duas e scripts/preparar_ambiente.sh.
+
+requests>=2.31
+pyyaml>=6.0
+python-dotenv>=1.0
+typer>=0.12
+rich>=13.7
+
+# testes
+pytest>=8.0
+
+-e .

@@ -8,6 +8,11 @@ documentacao e de validacao de tarefas, como escrever o rascunho da sprint
 review ou o comentario de um card a partir do que de fato mudou. Sempre sob
 validacao humana explicita: o agente nunca escreve nada sozinho, so propoe.
 
+> **Antes de usar qualquer comando `docs`, rode `scripts/preparar_ambiente.sh`.**
+> Ele instala o que falta, exige o login no Azure e cria o seu perfil SSO do
+> Databricks. Sem ele o `docs` nao autentica. Ver
+> [Preparacao do ambiente](#preparacao-do-ambiente).
+
 ---
 
 ## O principio que organiza tudo
@@ -30,30 +35,33 @@ engano, porque fechar card e decisao humana feita na interface do DevOps.
 
 Passo a passo, do clone ao primeiro comentario publicado num card.
 
-### 1. Clonar e instalar
+### 1. Clonar e preparar o ambiente (obrigatorio)
 
 ```bash
 git clone https://github.com/leonardosalvi1701/brewdat-revenue-docs.git
 cd brewdat-revenue-docs
-python -m venv .venv && source .venv/bin/activate
-pip install -e .
+scripts/preparar_ambiente.sh --perfil revenue
+source .venv/bin/activate
 ```
+
+O script instala as dependencias, instala ou atualiza o Azure CLI e a CLI do
+Databricks, exige o `az login`, cria o `.env` e cria o seu perfil SSO do
+Databricks. Os detalhes, as opcoes e o passo a passo manual estao em
+[Preparacao do ambiente](#preparacao-do-ambiente). Em cada terminal novo:
+`source .venv/bin/activate`.
 
 ### 2. Autenticar nas fontes de dado
 
-```bash
-cp .env.example .env    # org, projeto e time ja vem preenchidos
-```
+O script ja deixa DevOps e Databricks autenticados. Esta secao explica cada
+fonte, e o que fazer para o GitHub, que o script nao configura.
 
 #### 2.1 Azure DevOps (obrigatorio)
 
-Duas formas, na ordem de preferencia do repo:
+Pelo `az login`, que o script exige. Nao precisa de nada no `.env`. Quando a
+sessao expira, rode `az login` de novo (no WSL, `az login --use-device-code`).
 
-- `az login`, se voce tem o Azure CLI na maquina. Funciona sem tocar em
-  `.env`.
-- Sem Azure CLI, ou em sessao nao interativa: preencha `AZDO_PAT` no `.env`,
-  um Personal Access Token seu com permissao de leitura de Work Items
-  (gerado em `https://dev.azure.com/AMBEV-SA/_usersSettings/tokens`).
+`AZDO_PAT` no `.env` fica so para execucao sem sessao interativa. Preenchido,
+ele tem precedencia sobre o `az login`, entao deixe vazio no uso normal.
 
 ```bash
 docs config-check       # valida credenciais sem escrever nada
@@ -102,12 +110,13 @@ sabe quais notebooks mudaram e quais ainda nao tem cabecalho documentado
 (`docs notebooks`), o que tambem vira materia-prima para documentacao e
 comentario de card.
 
-1. No workspace do Databricks, va em User Settings > Developer > Access
-   tokens e gere um token novo. Ele so precisa do acesso padrao do seu
-   usuario ao workspace, nenhum escopo de admin.
-2. Preencha `DATABRICKS_HOST` (a URL do seu workspace, por exemplo
-   `https://adb-1820723078635205.5.azuredatabricks.net`) e
-   `DATABRICKS_TOKEN` no `.env`.
+O workspace nao permite gerar token pessoal: o acesso e por perfil SSO.
+
+1. O script cria o perfil e grava `DATABRICKS_CONFIG_PROFILE` no `.env`. Para
+   criar a mao, trocar ou recriar, ver
+   [Criar o perfil do Databricks](#criar-o-perfil-do-databricks).
+2. `DATABRICKS_HOST` ja vem preenchido no `.env.example` com o workspace da
+   squad.
 3. Confira se os caminhos que voce quer inventariar estao em
    `config/settings.yaml`, em `databricks.paths`. Mesma logica do GitHub:
    lista compartilhada, acrescente uma linha por caminho que faltar.
@@ -169,6 +178,203 @@ docs apply --all                                  # humano: so agora escreve no 
 
 `docs propose` e o unico comando de escrita que um agente roda por conta
 propria. `approve` e `apply` sao sempre seus.
+
+---
+
+## Preparacao do ambiente
+
+### Primeiro passo: rodar o script (obrigatorio)
+
+Numa maquina nova, antes de qualquer comando `docs`:
+
+```bash
+git clone https://github.com/leonardosalvi1701/brewdat-revenue-docs.git && cd brewdat-revenue-docs
+scripts/preparar_ambiente.sh --perfil revenue
+```
+
+O script faz, nesta ordem:
+
+1. cria o `.venv` e instala `requirements.txt`;
+2. instala o Azure CLI, ou atualiza se estiver abaixo do minimo;
+3. **exige o `az login`**, e para se nao houver sessao valida;
+4. instala ou atualiza a CLI do Databricks;
+5. **cria o perfil SSO do Databricks** e grava o nome dele em
+   `DATABRICKS_CONFIG_PROFILE` no `.env` (ver
+   [Criar o perfil do Databricks](#criar-o-perfil-do-databricks));
+6. termina com `docs config-check`, que deve mostrar `ok Azure DevOps` e
+   `ok Databricks`.
+
+Pede `sudo` apenas para instalar ou atualizar CLI, e abre o navegador para os
+dois logins. Pode ser rodado de novo sem estrago. **Rode de novo sempre que:**
+
+- o `docs` reclamar de sessao expirada ou de credencial ausente;
+- quiser trocar ou recriar o perfil do Databricks;
+- quiser atualizar as CLIs (`--atualizar`);
+- o `.venv` for apagado ou o `requirements.txt` mudar.
+
+Em cada terminal novo, antes de usar o `docs`: `source .venv/bin/activate`.
+
+| Opcao | Efeito |
+|---|---|
+| `--perfil revenue` | nome do perfil do Databricks. Sem ela, o script pergunta |
+| `--atualizar` | forca atualizar `az` e `databricks` mesmo acima do minimo |
+| `--device-code` | login por codigo, sem abrir navegador. Padrao no WSL |
+| `--sem-databricks` | pula a CLI e o perfil do Databricks |
+
+**No Windows, usar o WSL e rodar tudo dentro do Linux.** O `docs` so enxerga
+as CLIs instaladas no mesmo ambiente em que ele roda: um `az` instalado no
+Windows nao serve para o `docs` do WSL.
+
+### Requisitos
+
+O script garante todos. A tabela serve para conferir ou para quem prepara a
+maquina a mao.
+
+| Requisito | Versao minima | Para que serve |
+|---|---|---|
+| Python | 3.10 | o `docs` e as dependencias de `requirements.txt` |
+| Azure CLI (`az`) | 2.60.0 | login no Azure, que autentica a leitura do Azure DevOps. **Obrigatorio** |
+| CLI do Databricks (`databricks`) | 1.0.0 | login SSO no workspace, que autentica a leitura de notebooks |
+| Sessao `az login` | valida | sem ela o `docs` nao le o board |
+| Perfil SSO do Databricks | valido, em `DATABRICKS_CONFIG_PROFILE` | sem ele o snapshot sai sem inventario de notebook |
+
+Nenhum dos dois logins usa segredo no `.env`. As CLIs guardam a sessao no
+proprio cache e renovam o token sozinhas; quando a sessao expira, a mensagem de
+erro diz qual login refazer.
+
+### Criar o perfil do Databricks
+
+O workspace nao permite gerar token pessoal, entao o `docs` acessa o
+Databricks por um **perfil SSO**: uma entrada com nome no arquivo
+`~/.databrickscfg`, autenticada com a sua conta corporativa. O nome e livre;
+os exemplos usam `revenue`.
+
+**Pelo script (recomendado).** `scripts/preparar_ambiente.sh --perfil revenue`
+cria o perfil, abre o login e grava o nome no `.env`. Sem `--perfil`, o script
+pergunta o nome, com `revenue` como sugestao.
+
+**A mao.** Um comando cria o perfil, se ele nao existe, ou refaz o login, se
+ele ja existe:
+
+```bash
+databricks auth login \
+  --host https://adb-1820723078635205.5.azuredatabricks.net \
+  --profile revenue
+```
+
+1. O navegador abre na tela de login da Microsoft. Entre com a conta
+   corporativa. No WSL, se nao abrir, copie a URL que aparecer no terminal
+   para o navegador do Windows; o login termina sozinho.
+2. A CLI grava o perfil em `~/.databrickscfg`:
+   ```ini
+   [revenue]
+   host      = https://adb-1820723078635205.5.azuredatabricks.net
+   auth_type = databricks-cli
+   ```
+   O token nao vai para esse arquivo. Fica no cache da CLI, que o renova.
+3. Confira: `databricks auth profiles` deve listar `revenue` com
+   `Valid: YES`.
+4. Aponte o repo para ele, no `.env`:
+   ```bash
+   DATABRICKS_CONFIG_PROFILE=revenue
+   ```
+5. Confira no repo: `docs config-check` deve mostrar `ok Databricks`.
+
+**Sessao expirada.** Rode o mesmo `databricks auth login --profile revenue`,
+ou o script de novo.
+
+**Trocar ou apagar.** Para usar outro perfil, mude
+`DATABRICKS_CONFIG_PROFILE` no `.env`, ou rode o script com outro `--perfil`.
+Para apagar, remova o bloco `[nome]` do `~/.databrickscfg`.
+
+A extensao do Databricks no VS Code usa o mesmo `~/.databrickscfg`: um perfil
+logado nela serve para o `docs`, e vice-versa.
+
+### Passo a passo manual
+
+O que o script faz, para quem prefere rodar cada etapa.
+
+**1. Python e dependencias**
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt     # inclui o proprio repo, e cria o comando `docs`
+cp .env.example .env
+```
+
+Em cada terminal novo: `source .venv/bin/activate`.
+
+**2. Instalar o Azure CLI**
+
+```bash
+curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash    # Ubuntu, Debian e WSL
+brew install azure-cli                                    # macOS
+```
+
+**3. Atualizar o Azure CLI**
+
+```bash
+az version          # confere a versao
+az upgrade --yes    # atualiza pelo mesmo gerenciador que instalou
+```
+
+**4. Login no Azure (obrigatorio)**
+
+```bash
+az login                      # abre o navegador, com a conta corporativa
+az login --use-device-code    # no WSL, se o navegador nao abrir
+az account show               # confere quem esta logado
+```
+
+No login por codigo, abrir `https://microsoft.com/devicelogin` no navegador do
+Windows e digitar o codigo que aparecer. Se a conta tiver mais de um tenant e o
+login cair no errado: `az login --tenant <tenant>`.
+
+O `docs` usa essa sessao direto, sem extensao `az devops`. Deixe `AZDO_PAT`
+vazio no `.env`: preenchido, ele tem precedencia sobre o `az login`.
+
+**5. Instalar a CLI do Databricks**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sudo sh   # Linux e WSL
+brew tap databricks/tap && brew install databricks                                           # macOS
+```
+
+**6. Atualizar a CLI do Databricks**
+
+```bash
+databricks -v                                   # confere a versao
+sudo rm /usr/local/bin/databricks               # o instalador nao sobrescreve,
+curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sudo sh   # entao remove e instala de novo
+brew upgrade databricks                         # macOS
+```
+
+**7. Perfil SSO do Databricks**
+
+Seguir [Criar o perfil do Databricks](#criar-o-perfil-do-databricks), na
+parte "A mao".
+
+**8. Conferir**
+
+```bash
+docs config-check     # "autenticacao: Entra ID (az login)", "ok Azure DevOps", "ok Databricks"
+docs quem-sou-eu      # como o DevOps te identifica
+```
+
+### Quando algo falha
+
+| Sintoma | O que fazer |
+|---|---|
+| `docs: command not found` | `source .venv/bin/activate`; se nao existir `.venv`, rodar o script |
+| `O az nao devolveu token` | sessao expirou: `az login` |
+| `A CLI do Databricks nao devolveu token` | sessao expirou: `databricks auth login --profile <perfil>`, ou rodar o script |
+| `DATABRICKS_CONFIG_PROFILE nao esta definido` | rodar `scripts/preparar_ambiente.sh --perfil <nome>` |
+| `autenticacao: PAT (AZDO_PAT)` sem querer | apagar o valor de `AZDO_PAT` no `.env` |
+| navegador nao abre no WSL | `az login --use-device-code`; no Databricks, copiar a URL |
+
+O token de GitHub continua opcional: sem ele o snapshot sai sem evidencia de
+commit, e registra a ausencia em vez de falhar. O mesmo vale para o Databricks
+sem perfil.
 
 ---
 

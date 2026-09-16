@@ -72,3 +72,10 @@ decisoes:
     projeto: docsquad
     data: 2026-08-31
     arquivo: ADR-0010-padrao-de-card.md
+
+  - id: ADR-0011
+    titulo: "Agente le sistema externo pela credencial da pessoa, e continua sem escrever"
+    status: vigente
+    projeto: docsquad
+    data: 2026-09-16
+    arquivo: ADR-0011-agente-le-sistema-externo.md

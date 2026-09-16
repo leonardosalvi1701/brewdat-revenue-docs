@@ -13,3 +13,5 @@ outputs/*
 
 # cache de testes
 .pytest_cache/
+
+.databricks

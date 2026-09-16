@@ -21,7 +21,10 @@ Esta e a unica pegadinha especifica desta ferramenta. O harness acrescenta
 `Co-Authored-By:` e uma linha de sessao por padrao. Omitir as duas ativamente
 ao montar a mensagem, conforme o contrato.
 
-## Escrita em sistema externo
-O contrato vale integralmente, e a ferramenta tem shell. Nao usar Bash para
-chamar API de Azure DevOps, GitHub ou Databricks, e nao rodar `docs apply`,
-`docs approve` nem `docs reject`. `docs propose` e permitido.
+## Sistema externo
+O contrato vale integralmente, e a ferramenta tem shell. Leitura pelas CLIs
+(`databricks`, `az`, `gh`) e pelos comandos de leitura do `docs` e permitida,
+sempre com `--profile` explicito no Databricks, escolhido pela pessoa. Escrita
+nunca: nada de subcomando que cria, altera ou apaga, nada de SQL ou codigo em
+compute, e nada de `docs apply`, `docs approve` ou `docs reject`.
+`docs propose` e permitido.

@@ -6,16 +6,22 @@ from typing import Iterator
 
 import requests
 
+from ..auth import cabecalho_databricks
 from ..config import env, settings
 
 
 class DatabricksClient:
-    def __init__(self, host: str | None = None, token: str | None = None):
+    def __init__(self, host: str | None = None, token: str | None = None,
+                 perfil: str | None = None):
         self.host = (host or env("DATABRICKS_HOST")).rstrip("/")
+        # O caminho normal e o perfil SSO da CLI; o token so existe para
+        # automacao. O token do SSO dura cerca de uma hora, o que cobre uma
+        # coleta com folga.
+        token = token if token is not None else env("DATABRICKS_TOKEN", required=False)
+        perfil = perfil or env("DATABRICKS_CONFIG_PROFILE", required=False)
+        header, self.metodo_auth = cabecalho_databricks(token, perfil)
         self.s = requests.Session()
-        self.s.headers.update({
-            "Authorization": f"Bearer {token or env('DATABRICKS_TOKEN')}"
-        })
+        self.s.headers.update(header)
 
     def _get(self, endpoint: str, **params):
         r = self.s.get(f"{self.host}{endpoint}", params=params, timeout=120)

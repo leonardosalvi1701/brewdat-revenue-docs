@@ -1,6 +1,6 @@
-"""Credencial de leitura do Azure DevOps.
+"""Credenciais de leitura: Azure DevOps e Databricks.
 
-Dois caminhos, nesta ordem de preferencia:
+Para o Azure DevOps, dois caminhos, nesta ordem de preferencia:
 
 1. **Entra ID, via `az login`.** E o padrao. A pessoa ja se autentica no tenant
    da Ambev para outras coisas, o token dura cerca de uma hora, e nao existe
@@ -33,7 +33,7 @@ INSTRUCAO = (
 
 
 class SemCredencial(RuntimeError):
-    """Nao ha como autenticar no Azure DevOps."""
+    """Nao ha como autenticar no Azure DevOps ou no Databricks."""
 
 
 def token_entra(timeout: int = 60) -> str:
@@ -83,3 +83,63 @@ def cabecalho(pat: str | None) -> tuple[dict, str]:
         token = base64.b64encode(f":{pat}".encode()).decode()
         return {"Authorization": f"Basic {token}"}, "PAT (AZDO_PAT)"
     return {"Authorization": f"Bearer {token_entra()}"}, "Entra ID (az login)"
+
+
+# ---------- Databricks ----------
+#
+# O caminho documentado e o login SSO da CLI do Databricks, por perfil do
+# ~/.databrickscfg: a squad nao tem permissao de gerar PAT no workspace.
+# DATABRICKS_TOKEN continua aceito, com precedencia, so como escape para
+# execucao automatizada com credencial de servico. Nao e para uso pessoal, e
+# por isso nao aparece no .env.example nem nas mensagens.
+
+INSTRUCAO_DATABRICKS = (
+    "Autentique no Databricks pelo login SSO:\n"
+    "  1. databricks auth login --host <DATABRICKS_HOST> --profile <nome>\n"
+    "  2. preencha DATABRICKS_CONFIG_PROFILE=<nome> no .env\n"
+    "Ou rode scripts/preparar_ambiente.sh, que faz os dois."
+)
+
+
+def token_databricks(perfil: str, timeout: int = 60) -> str:
+    """Token OAuth do login SSO da CLI, renovado pela propria CLI se preciso."""
+    if shutil.which("databricks") is None:
+        raise SemCredencial(
+            "O comando `databricks` nao esta instalado.\n" + INSTRUCAO_DATABRICKS)
+
+    try:
+        proc = subprocess.run(
+            ["databricks", "auth", "token", "--profile", perfil,
+             "--output", "json"],
+            capture_output=True, text=True, timeout=timeout, check=False)
+    except subprocess.TimeoutExpired as exc:
+        raise SemCredencial(
+            f"`databricks auth token` passou de {timeout}s sem responder."
+        ) from exc
+
+    if proc.returncode != 0:
+        erro = (proc.stderr or "").strip().splitlines()
+        detalhe = erro[-1] if erro else "sem detalhe"
+        raise SemCredencial(
+            f"A CLI do Databricks nao devolveu token: {detalhe}\n"
+            f"Normalmente e sessao expirada. Rode: "
+            f"databricks auth login --profile {perfil}")
+
+    try:
+        return json.loads(proc.stdout)["access_token"]
+    except (json.JSONDecodeError, KeyError) as exc:
+        raise SemCredencial(
+            "A CLI do Databricks respondeu num formato inesperado, "
+            "sem access_token.") from exc
+
+
+def cabecalho_databricks(token: str | None, perfil: str | None) -> tuple[dict, str]:
+    """Header de autorizacao do Databricks e o nome do metodo em uso."""
+    if token:
+        return {"Authorization": f"Bearer {token}"}, "PAT (DATABRICKS_TOKEN)"
+    if perfil:
+        return ({"Authorization": f"Bearer {token_databricks(perfil)}"},
+                f"SSO (perfil {perfil})")
+    raise SemCredencial(
+        "DATABRICKS_CONFIG_PROFILE nao esta definido.\n"
+        + INSTRUCAO_DATABRICKS)

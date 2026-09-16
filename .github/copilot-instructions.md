@@ -32,14 +32,30 @@ em `proposals/approved/`.
 
 Consequências práticas para você, agente:
 
-- nunca chamar a API do Azure DevOps, do GitHub ou do Databricks diretamente;
+- ler do Azure DevOps, do GitHub e do Databricks é permitido, pelas
+  credenciais que a pessoa já configurou: comandos de leitura do `docs`
+  (`collect`, `sprint`, `notebooks`, `quem-sou-eu`, `config-check`) e
+  subcomandos de leitura das CLIs, como `databricks workspace list`,
+  `databricks workspace export`, `databricks workspace export-dir`,
+  `az boards work-item show`, `az boards query` e `gh api` com `GET`.
+  Exportação vai para `knowledge/notebooks/`, que está fora do git. Ver
+  ADR-0011;
+- nunca escrever nesses sistemas diretamente, por nenhum caminho: nada de
+  `import`, `delete`, `mkdirs`, `sync`, `update`, `create`, `comment`, nem
+  requisição HTTP que não seja `GET`. Escrita só passa por proposta;
+- nunca executar código nem SQL em compute do Databricks. SQL escreve tanto
+  quanto lê, e execução custa dinheiro da squad;
+- nunca exibir, registrar nem gravar token. Se um comando imprime credencial,
+  não repassar a saída;
 - nunca importar nem instanciar `docsquad.gate.executor.Executor`;
 - nunca rodar `docs apply`, `docs approve` ou `docs reject`. Esses comandos são
   do humano;
 - rodar `docs propose ...` é permitido, porque só cria arquivo em `pending/`.
 
-A separação é física, não contratual. Se você se comportar mal, o pior
-resultado possível é um arquivo JSON que ninguém aprovou. Manter assim.
+Na escrita, a separação é física, não contratual. Se você se comportar mal,
+o pior resultado possível é um arquivo JSON que ninguém aprovou. Manter assim.
+A leitura é liberada por contrato, e só a leitura: a credencial da pessoa
+permite escrever, e o que impede é esta seção.
 
 ## Onde escrever
 
