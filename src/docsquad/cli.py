@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 
+import requests
 import typer
 from rich.console import Console
 from rich.panel import Panel
@@ -321,6 +322,14 @@ def config_check():
         try:
             fn()
             console.print(f"[green]ok[/] {nome}")
+        except requests.HTTPError as exc:
+            if exc.response is not None and exc.response.status_code == 404:
+                console.print(
+                    f"[yellow]autenticado, mas caminho inexistente[/] {nome}: "
+                    f"{exc.request.url if exc.request else exc}\n"
+                    "  Confira os caminhos em config/settings.yaml.")
+            else:
+                console.print(f"[red]falha[/] {nome}: {exc}")
         except Exception as exc:
             console.print(f"[red]falha[/] {nome}: {exc}")
 

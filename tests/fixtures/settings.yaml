@@ -27,6 +27,7 @@ databricks:
   paths: [/Repos/teste]
   escrita_permitida:
     - /Repos/teste/docs
+    - /Workspace/Users/{usuario}/teste
 
 gate:
   exigir_aprovacao: true

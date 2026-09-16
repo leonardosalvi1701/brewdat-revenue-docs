@@ -117,9 +117,17 @@ O workspace nao permite gerar token pessoal: o acesso e por perfil SSO.
    [Criar o perfil do Databricks](#criar-o-perfil-do-databricks).
 2. `DATABRICKS_HOST` ja vem preenchido no `.env.example` com o workspace da
    squad.
-3. Confira se os caminhos que voce quer inventariar estao em
-   `config/settings.yaml`, em `databricks.paths`. Mesma logica do GitHub:
-   lista compartilhada, acrescente uma linha por caminho que faltar.
+3. A pasta do produto no workspace e `/Workspace/Users/<seu login>/revenue-docs`,
+   e cada pessoa tem a sua. E dela que o inventario le, e so nela que uma
+   proposta aprovada pode escrever notebook. O script cria a pasta se ela
+   nao existir. A mao:
+   ```bash
+   databricks workspace mkdirs "/Workspace/Users/<seu login>/revenue-docs" --profile revenue
+   ```
+   Em `config/settings.yaml` o caminho aparece como
+   `/Workspace/Users/{usuario}/revenue-docs`: o `{usuario}` e trocado pelo
+   login de quem esta autenticado, entao a mesma linha serve para a squad
+   inteira.
 
 ```bash
 docs config-check       # valida DevOps e Databricks, nao checa GitHub

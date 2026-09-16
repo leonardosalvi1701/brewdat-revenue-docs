@@ -16,7 +16,7 @@
 
 squad:
   nome: Revenue
-  produto: Promo Phoenix
+  produto: Revenue Docs
 
 devops:
   # Onde o board vive. Nao e segredo: sai da url do board e e igual para toda a
@@ -79,12 +79,17 @@ github:
   janela_dias: 14
 
 databricks:
-  # caminhos observados no workspace
+  # Cada pessoa tem a propria pasta revenue-docs dentro da sua area no
+  # workspace, e nao existe caminho compartilhado: {usuario} e trocado, na
+  # hora, pelo login de quem esta autenticado.
+  # caminhos lidos pelo inventario de notebooks
   paths:
-    - /Repos/revenue/promophoenix-volume-mlp
-  # notebooks so podem ser escritos dentro destes prefixos
+    - /Workspace/Users/{usuario}/revenue-docs
+  # notebooks so podem ser escritos dentro destes prefixos. E a mesma pasta da
+  # leitura, e {usuario} e sempre quem aplica: ninguem escreve na pasta de
+  # outra pessoa.
   escrita_permitida:
-    - /Repos/revenue/promophoenix-volume-mlp/docs
+    - /Workspace/Users/{usuario}/revenue-docs/escritos
 
 gate:
   # exige aprovacao explicita para toda escrita externa. Nao desligavel por config.

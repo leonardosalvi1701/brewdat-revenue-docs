@@ -4,7 +4,9 @@ Regras estruturais, nao configuraveis:
   1. So aceita proposta com status 'approved' e approved_by preenchido.
   2. Revalida a politica no momento da aplicacao, nao so na geracao.
      Uma transicao bloqueada continua bloqueada mesmo aprovada por engano.
-  3. Escrita em notebook so dentro dos prefixos declarados em settings.
+  3. Escrita em notebook so dentro dos prefixos declarados em settings, com o
+     caminho normalizado. `{usuario}` no prefixo vira o login de quem aplica;
+     sem como resolver, o prefixo nao vale.
   4. Criacao de card so com tipo declarado em settings e titulo preenchido.
   5. Nenhum agente importa este modulo. A separacao e fisica, nao contratual.
 
@@ -13,6 +15,8 @@ proposta sem checagem seria um buraco no portao, entao a ausencia de checagem
 e erro, nao omissao aceitavel.
 """
 from __future__ import annotations
+
+import posixpath
 
 from ..config import settings
 from .proposal import Proposal, ProposalKind, ProposalStore
@@ -64,10 +68,31 @@ class Executor:
         if not str(p.payload.get("title", "")).strip():
             raise BlockedByPolicy("Criacao de card exige titulo preenchido.")
 
+    def _prefixos_escrita(self) -> list[str]:
+        """Prefixos de escrita com `{usuario}` trocado pelo login de quem aplica.
+
+        Falha fechada: sem cliente capaz de resolver o login, o prefixo com
+        `{usuario}` e descartado, e nao comparado cru.
+        """
+        out = []
+        for pref in self.cfg["databricks"].get("escrita_permitida", []):
+            if "{usuario}" in pref:
+                resolver = getattr(self.databricks, "resolver", None)
+                if resolver is None:
+                    continue
+                pref = resolver(pref)
+            out.append(posixpath.normpath(pref))
+        return out
+
     def _check_notebook_path(self, p: Proposal) -> None:
         alvo = p.target
-        prefixos = self.cfg["databricks"].get("escrita_permitida", [])
-        if not any(alvo.startswith(pref) for pref in prefixos):
+        # `..` ou barra dupla fariam um caminho passar no prefixo e cair fora
+        # dele no workspace. Caminho que muda ao normalizar e recusado.
+        if not alvo.startswith("/") or posixpath.normpath(alvo) != alvo:
+            raise BlockedByPolicy(f"Caminho '{alvo}' nao esta normalizado.")
+        prefixos = self._prefixos_escrita()
+        # prefixo + "/" para que `.../docs` nao libere `.../docs-outro`.
+        if not any(alvo.startswith(pref.rstrip("/") + "/") for pref in prefixos):
             raise BlockedByPolicy(
                 f"Caminho '{alvo}' fora dos prefixos de escrita permitida: {prefixos}"
             )

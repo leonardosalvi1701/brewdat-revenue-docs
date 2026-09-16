@@ -7,7 +7,8 @@
 #   3. exige `az login`. Sem sessao valida no Azure, o script para aqui;
 #   4. instala ou atualiza a CLI do Databricks;
 #   5. exige um perfil SSO do Databricks definido em DATABRICKS_CONFIG_PROFILE
-#      no .env, e faz o login nele se preciso;
+#      no .env, faz o login nele se preciso e cria a sua pasta revenue-docs
+#      no workspace, se ela ainda nao existir;
 #   6. roda `docs config-check`.
 #
 # Uso:
@@ -32,6 +33,7 @@ AZ_MIN="2.60.0"
 DATABRICKS_MIN="1.0.0"
 DATABRICKS_HOST_PADRAO="https://adb-1820723078635205.5.azuredatabricks.net"
 PERFIL_PADRAO="revenue"
+PASTA_PRODUTO="revenue-docs"
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="$RAIZ/.env"
@@ -48,7 +50,7 @@ while [[ $# -gt 0 ]]; do
     --device-code) DEVICE_CODE=1 ;;
     --sem-databricks) SEM_DATABRICKS=1 ;;
     --perfil) PERFIL="${2:?--perfil precisa de um nome}"; shift ;;
-    -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,26p' "$0"; exit 0 ;;
     *) echo "Opcao desconhecida: $1" >&2; exit 2 ;;
   esac
   shift
@@ -210,6 +212,17 @@ if [[ $SEM_DATABRICKS -eq 0 ]]; then
   databricks auth token --profile "$PERFIL" >/dev/null 2>&1 \
     || falha "Login no perfil $PERFIL nao concluiu. Rode: databricks auth login --host $HOST --profile $PERFIL"
   ok "perfil $PERFIL autenticado em $HOST"
+
+  # Pasta do produto, lida pelo inventario e unica onde proposta aprovada
+  # escreve notebook. Espelha databricks.paths em config/settings.yaml.
+  LOGIN="$(databricks current-user me --profile "$PERFIL" -o json | "$PY" -c 'import json,sys; print(json.load(sys.stdin)["userName"])')"
+  PASTA="/Workspace/Users/$LOGIN/$PASTA_PRODUTO"
+  if databricks workspace get-status "$PASTA" --profile "$PERFIL" >/dev/null 2>&1; then
+    ok "pasta $PASTA ja existe"
+  else
+    databricks workspace mkdirs "$PASTA" --profile "$PERFIL"
+    ok "pasta $PASTA criada"
+  fi
 fi
 
 # ---------- 6. conferencia ----------

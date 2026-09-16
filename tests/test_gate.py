@@ -85,6 +85,70 @@ def test_notebook_fora_do_prefixo(store):
         Executor(databricks=object(), store=store).apply(p)
 
 
+class FakeDatabricks:
+    def __init__(self, usuario="pessoa@teste"):
+        self.usuario = usuario
+        self.calls = []
+
+    def resolver(self, path):
+        return path.replace("{usuario}", self.usuario)
+
+    def import_notebook(self, path, content, language="PYTHON", overwrite=False):
+        self.calls.append(path)
+        return {"path": path}
+
+
+def _notebook(store, alvo):
+    p = Proposal(kind=ProposalKind.NOTEBOOK_WRITE, target=alvo,
+                 summary="x", payload={"content": "print(1)"})
+    store.save(p)
+    return store.approve(p.id, "Leo")
+
+
+def test_notebook_na_pasta_do_proprio_usuario(store):
+    p = _notebook(store, "/Workspace/Users/pessoa@teste/teste/nb")
+    dbx = FakeDatabricks()
+    Executor(databricks=dbx, store=store).apply(p)
+    assert dbx.calls == ["/Workspace/Users/pessoa@teste/teste/nb"]
+
+
+def test_notebook_na_pasta_de_outro_usuario(store):
+    p = _notebook(store, "/Workspace/Users/outra@teste/teste/nb")
+    dbx = FakeDatabricks()
+    with pytest.raises(BlockedByPolicy, match="fora dos prefixos"):
+        Executor(databricks=dbx, store=store).apply(p)
+    assert dbx.calls == []
+
+
+def test_prefixo_com_usuario_sem_resolver_falha_fechado(store):
+    """Sem como saber quem aplica, `{usuario}` nao pode virar curinga."""
+    p = _notebook(store, "/Workspace/Users/{usuario}/teste/nb")
+    with pytest.raises(BlockedByPolicy, match="fora dos prefixos"):
+        Executor(databricks=object(), store=store).apply(p)
+
+
+@pytest.mark.parametrize("alvo", [
+    "/Repos/teste/docs/../../producao/critico",
+    "/Repos/teste/docs//nb",
+    "Repos/teste/docs/nb",
+])
+def test_notebook_caminho_nao_normalizado(store, alvo):
+    p = _notebook(store, alvo)
+    dbx = FakeDatabricks()
+    with pytest.raises(BlockedByPolicy, match="normalizado"):
+        Executor(databricks=dbx, store=store).apply(p)
+    assert dbx.calls == []
+
+
+def test_notebook_prefixo_vizinho_nao_passa(store):
+    """`/Repos/teste/docs` nao libera `/Repos/teste/docs-outro`."""
+    p = _notebook(store, "/Repos/teste/docs-outro/nb")
+    dbx = FakeDatabricks()
+    with pytest.raises(BlockedByPolicy, match="fora dos prefixos"):
+        Executor(databricks=dbx, store=store).apply(p)
+    assert dbx.calls == []
+
+
 def test_recusada_nao_vira_aprovada(store):
     p = _comment()
     store.save(p)

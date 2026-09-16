@@ -35,8 +35,21 @@ class DatabricksClient:
 
     # ---------- LEITURA ----------
 
+    def usuario(self) -> str:
+        """Login de quem esta autenticado, como o workspace o conhece."""
+        if not hasattr(self, "_usuario"):
+            self._usuario = self._get("/api/2.0/preview/scim/v2/Me")["userName"]
+        return self._usuario
+
+    def resolver(self, path: str) -> str:
+        """Troca `{usuario}` pelo login atual. So consulta a API se precisar."""
+        if "{usuario}" not in path:
+            return path
+        return path.replace("{usuario}", self.usuario())
+
     def list_path(self, path: str) -> list[dict]:
-        return self._get("/api/2.0/workspace/list", path=path).get("objects", [])
+        return self._get("/api/2.0/workspace/list",
+                         path=self.resolver(path)).get("objects", [])
 
     def walk(self, path: str) -> Iterator[dict]:
         """Percorre recursivamente, devolvendo apenas notebooks."""
@@ -63,7 +76,7 @@ class DatabricksClient:
         """
         paths = paths or settings()["databricks"]["paths"]
         out = []
-        for root in paths:
+        for root in map(self.resolver, paths):
             for nb in self.walk(root):
                 try:
                     src = self.export_notebook(nb["path"], "SOURCE")
