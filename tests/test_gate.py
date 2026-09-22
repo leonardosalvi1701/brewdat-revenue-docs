@@ -16,6 +16,14 @@ class FakeDevOps:
         self.calls.append(("state", wid, state))
         return {"id": wid}
 
+    def set_assigned_to(self, wid, pessoa):
+        self.calls.append(("assign", wid, pessoa))
+        return {"id": wid}
+
+    def set_tags(self, wid, tags):
+        self.calls.append(("tags", wid, tags))
+        return {"id": wid}
+
 
 @pytest.fixture
 def store(tmp_path):
@@ -157,6 +165,48 @@ def test_recusada_nao_vira_aprovada(store):
         store.approve(p.id, "Leo")
 
 
+def test_atribuicao_pendente_nao_aplica(store):
+    p = Proposal(kind=ProposalKind.CARD_ASSIGN, target="123", summary="teste",
+                 payload={"pessoa": "leonardo.salvi@ambevtech.com.br"})
+    store.save(p)
+    devops = FakeDevOps()
+    with pytest.raises(BlockedByPolicy):
+        Executor(devops=devops, store=store).apply(p)
+    assert devops.calls == []
+
+
+def test_atribuicao_aprovada_aplica(store):
+    p = Proposal(kind=ProposalKind.CARD_ASSIGN, target="123", summary="teste",
+                 payload={"pessoa": "leonardo.salvi@ambevtech.com.br"})
+    store.save(p)
+    p = store.approve(p.id, "Leo")
+    devops = FakeDevOps()
+    Executor(devops=devops, store=store).apply(p)
+    assert devops.calls[0] == ("assign", 123, "leonardo.salvi@ambevtech.com.br")
+    assert store.load(p.id).status == "applied"
+
+
+def test_tag_pendente_nao_aplica(store):
+    p = Proposal(kind=ProposalKind.CARD_TAG, target="123", summary="teste",
+                 payload={"tags": "Otimizacao"})
+    store.save(p)
+    devops = FakeDevOps()
+    with pytest.raises(BlockedByPolicy):
+        Executor(devops=devops, store=store).apply(p)
+    assert devops.calls == []
+
+
+def test_tag_aprovada_aplica(store):
+    p = Proposal(kind=ProposalKind.CARD_TAG, target="123", summary="teste",
+                 payload={"tags": "Mudanca de Escopo; Otimizacao"})
+    store.save(p)
+    p = store.approve(p.id, "Leo")
+    devops = FakeDevOps()
+    Executor(devops=devops, store=store).apply(p)
+    assert devops.calls[0] == ("tags", 123, "Mudanca de Escopo; Otimizacao")
+    assert store.load(p.id).status == "applied"
+
+
 def test_criacao_de_card_fora_dos_tipos(store):
     """Criar card e escrita externa e precisa de politica como qualquer outra."""
     p = Proposal(kind=ProposalKind.CARD_CREATE, target="novo", summary="x",
@@ -182,7 +232,8 @@ def test_todo_tipo_de_proposta_tem_politica(store):
     ex = Ex(store=store)
     declarados = {
         ProposalKind.CARD_COMMENT, ProposalKind.CARD_TRANSITION,
-        ProposalKind.CARD_CREATE, ProposalKind.NOTEBOOK_WRITE,
+        ProposalKind.CARD_CREATE, ProposalKind.CARD_ASSIGN, ProposalKind.CARD_TAG,
+        ProposalKind.NOTEBOOK_WRITE,
     }
     assert set(ProposalKind) == declarados, (
         "ProposalKind novo detectado. Declare a politica dele em Executor.apply "

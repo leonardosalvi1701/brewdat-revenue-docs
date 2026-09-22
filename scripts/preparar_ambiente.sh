@@ -20,7 +20,11 @@
 #
 # No WSL, rodar dentro do Linux, e nao no PowerShell: o `docs` so enxerga as
 # CLIs instaladas no mesmo ambiente em que ele roda. No WSL o login por codigo
-# e o padrao, porque o navegador costuma nao abrir.
+# e o padrao, porque o navegador costuma nao abrir. Se o `az` do Windows
+# aparecer no PATH do WSL (instalacao antiga, ou perfil que herda o PATH do
+# Windows), o script detecta e instala o nativo do Linux por cima, porque o
+# `az` do Windows chama `cmd.exe`, que nao entende o caminho UNC da pasta
+# atual dentro do WSL e falha em qualquer comando.
 #
 # Pede sudo so para instalar ou atualizar CLI. Nao guarda token em lugar
 # nenhum: as duas CLIs mantem a sessao no proprio cache.
@@ -42,7 +46,8 @@ ATUALIZAR=0
 SEM_DATABRICKS=0
 PERFIL=""
 DEVICE_CODE=0
-grep -qi microsoft /proc/version 2>/dev/null && DEVICE_CODE=1
+EM_WSL=0
+grep -qi microsoft /proc/version 2>/dev/null && { DEVICE_CODE=1; EM_WSL=1; }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -121,9 +126,21 @@ instalar_az() {
   fi
 }
 
-if ! command -v az >/dev/null 2>&1; then
+AZ_PATH="$(command -v az || true)"
+if [[ -z "$AZ_PATH" ]]; then
   aviso "az nao encontrado, instalando"
   instalar_az
+  hash -r
+elif [[ $EM_WSL -eq 1 && "$AZ_PATH" == /mnt/* ]]; then
+  # No WSL, o PATH do Windows entra depois do PATH do Linux, e sem az nativo
+  # `az` resolve pro .cmd do Windows. Esse binario chama cmd.exe, que nao
+  # entende o caminho UNC `\\wsl.localhost\...` da pasta atual, e falha em
+  # qualquer coisa que precise atualizar ou logar. Nao e "az desatualizado",
+  # e "az errado": instalar o nativo, nao tentar atualizar o do Windows.
+  aviso "az encontrado em $AZ_PATH e o do Windows via interop do WSL, nao o do Linux"
+  aviso "instalando a versao nativa, que passa a vencer no PATH"
+  instalar_az
+  hash -r
 fi
 AZ_VER="$(az version --query '"azure-cli"' -o tsv 2>/dev/null || echo 0)"
 if [[ $ATUALIZAR -eq 1 ]] || ! versao_ok "$AZ_VER" "$AZ_MIN"; then

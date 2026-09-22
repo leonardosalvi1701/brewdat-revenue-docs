@@ -1,0 +1,143 @@
+{
+  "kind": "card_tag",
+  "target": "2748621",
+  "summary": "Card 2748621: tags -> Otimização",
+  "payload": {
+    "tags": "Otimização"
+  },
+  "rationale": "",
+  "sources": [],
+  "id": "efb1d59b5c80",
+  "created_at": "2026-09-22T13:47:31+00:00",
+  "status": "applied",
+  "approved_by": "Leonardo Salvi",
+  "approved_at": "2026-09-22T13:48:29+00:00",
+  "rejection_reason": null,
+  "result": {
+    "id": 2748621,
+    "rev": 6,
+    "fields": {
+      "System.AreaPath": "AMBEV-ANALYTICS-DATA-CHAPTER-SALES\\B2B Analytics\\Digital Insights\\A\\Revenue e Sales Finance\\Squad Revenue",
+      "System.TeamProject": "AMBEV-ANALYTICS-DATA-CHAPTER-SALES",
+      "System.IterationPath": "AMBEV-ANALYTICS-DATA-CHAPTER-SALES\\Digital Insights\\Revenue e Sales Finance\\Squad Revenue\\2026\\Q3\\S5-Q3-26-REVENUE-DI",
+      "System.WorkItemType": "Business Story",
+      "System.State": "Waiting-Development",
+      "System.Reason": "Moved to state Waiting-Development",
+      "System.AssignedTo": {
+        "displayName": "Leonardo Luis Machado Salvi",
+        "url": "https://spsprodsbr1.vssps.visualstudio.com/Abbb1ba9f-a3aa-4ff3-99be-2b5c8afa2353/_apis/Identities/ad9091fd-724f-6cad-9752-521eb08ec183",
+        "_links": {
+          "avatar": {
+            "href": "https://dev.azure.com/AMBEV-SA/_apis/GraphProfile/MemberAvatars/aad.YWQ5MDkxZmQtNzI0Zi03Y2FkLTk3NTItNTIxZWIwOGVjMTgz"
+          }
+        },
+        "id": "ad9091fd-724f-6cad-9752-521eb08ec183",
+        "uniqueName": "leonardo.salvi@ambevtech.com.br",
+        "imageUrl": "https://dev.azure.com/AMBEV-SA/_apis/GraphProfile/MemberAvatars/aad.YWQ5MDkxZmQtNzI0Zi03Y2FkLTk3NTItNTIxZWIwOGVjMTgz",
+        "descriptor": "aad.YWQ5MDkxZmQtNzI0Zi03Y2FkLTk3NTItNTIxZWIwOGVjMTgz"
+      },
+      "System.CreatedDate": "2026-09-21T00:51:46.76Z",
+      "System.CreatedBy": {
+        "displayName": "Gabriel Henrique Oliveira Da Paz Salgado",
+        "url": "https://spsprodsbr1.vssps.visualstudio.com/Abbb1ba9f-a3aa-4ff3-99be-2b5c8afa2353/_apis/Identities/de5663de-061d-68d2-b211-259ff019a455",
+        "_links": {
+          "avatar": {
+            "href": "https://dev.azure.com/AMBEV-SA/_apis/GraphProfile/MemberAvatars/aad.ZGU1NjYzZGUtMDYxZC03OGQyLWIyMTEtMjU5ZmYwMTlhNDU1"
+          }
+        },
+        "id": "de5663de-061d-68d2-b211-259ff019a455",
+        "uniqueName": "gabriel.paz@ambevtech.com.br",
+        "imageUrl": "https://dev.azure.com/AMBEV-SA/_apis/GraphProfile/MemberAvatars/aad.ZGU1NjYzZGUtMDYxZC03OGQyLWIyMTEtMjU5ZmYwMTlhNDU1",
+        "descriptor": "aad.ZGU1NjYzZGUtMDYxZC03OGQyLWIyMTEtMjU5ZmYwMTlhNDU1"
+      },
+      "System.ChangedDate": "2026-09-22T13:48:32.467Z",
+      "System.ChangedBy": {
+        "displayName": "Leonardo Luis Machado Salvi",
+        "url": "https://spsprodsbr1.vssps.visualstudio.com/Abbb1ba9f-a3aa-4ff3-99be-2b5c8afa2353/_apis/Identities/ad9091fd-724f-6cad-9752-521eb08ec183",
+        "_links": {
+          "avatar": {
+            "href": "https://dev.azure.com/AMBEV-SA/_apis/GraphProfile/MemberAvatars/aad.YWQ5MDkxZmQtNzI0Zi03Y2FkLTk3NTItNTIxZWIwOGVjMTgz"
+          }
+        },
+        "id": "ad9091fd-724f-6cad-9752-521eb08ec183",
+        "uniqueName": "leonardo.salvi@ambevtech.com.br",
+        "imageUrl": "https://dev.azure.com/AMBEV-SA/_apis/GraphProfile/MemberAvatars/aad.YWQ5MDkxZmQtNzI0Zi03Y2FkLTk3NTItNTIxZWIwOGVjMTgz",
+        "descriptor": "aad.YWQ5MDkxZmQtNzI0Zi03Y2FkLTk3NTItNTIxZWIwOGVjMTgz"
+      },
+      "System.CommentCount": 0,
+      "System.Title": "[Produtização] Treinamento, Validação e Seleção de modelo em Production",
+      "System.BoardColumn": "Aguardando desenvolvimento",
+      "System.BoardColumnDone": false,
+      "System.BoardLane": "Outros",
+      "Microsoft.VSTS.Common.StateChangeDate": "2026-09-22T13:33:38.97Z",
+      "Microsoft.VSTS.Common.ActivatedDate": "2026-09-22T13:33:38.97Z",
+      "Microsoft.VSTS.Common.ActivatedBy": {
+        "displayName": "Leonardo Luis Machado Salvi",
+        "url": "https://spsprodsbr1.vssps.visualstudio.com/Abbb1ba9f-a3aa-4ff3-99be-2b5c8afa2353/_apis/Identities/ad9091fd-724f-6cad-9752-521eb08ec183",
+        "_links": {
+          "avatar": {
+            "href": "https://dev.azure.com/AMBEV-SA/_apis/GraphProfile/MemberAvatars/aad.YWQ5MDkxZmQtNzI0Zi03Y2FkLTk3NTItNTIxZWIwOGVjMTgz"
+          }
+        },
+        "id": "ad9091fd-724f-6cad-9752-521eb08ec183",
+        "uniqueName": "leonardo.salvi@ambevtech.com.br",
+        "imageUrl": "https://dev.azure.com/AMBEV-SA/_apis/GraphProfile/MemberAvatars/aad.YWQ5MDkxZmQtNzI0Zi03Y2FkLTk3NTItNTIxZWIwOGVjMTgz",
+        "descriptor": "aad.YWQ5MDkxZmQtNzI0Zi03Y2FkLTk3NTItNTIxZWIwOGVjMTgz"
+      },
+      "Microsoft.VSTS.Common.Priority": 1,
+      "Microsoft.VSTS.Scheduling.Effort": 6.0,
+      "Custom.Impediment": false,
+      "WEF_D8E47A7C7C224D2483467C019C5B0EFE_Kanban.Column": "New",
+      "WEF_D8E47A7C7C224D2483467C019C5B0EFE_Kanban.Column.Done": false,
+      "WEF_F11AD66877FE4A7E8A0D9BEA673C71E3_Kanban.Column": "Aguardando desenvolvimento",
+      "WEF_F11AD66877FE4A7E8A0D9BEA673C71E3_Kanban.Column.Done": false,
+      "WEF_F11AD66877FE4A7E8A0D9BEA673C71E3_Kanban.Lane": "Outros",
+      "WEF_01B458C7954D43DBAB43AC95705BD33F_Kanban.Column": "Waiting-Development",
+      "WEF_01B458C7954D43DBAB43AC95705BD33F_Kanban.Column.Done": false,
+      "WEF_E1CD8BE41A284B70AC35F3D5D1A3E1D5_Kanban.Column": "Waiting-Development",
+      "WEF_E1CD8BE41A284B70AC35F3D5D1A3E1D5_Kanban.Column.Done": false,
+      "System.Description": "\n\n*Checklist*\n\nChecklist QA: \n",
+      "Custom.DefinitionofDone": "* Ter incluído as tags para incluir o modelo no AIM;\n* Ter incluído o yaml de feature drift;",
+      "System.Tags": "Otimização",
+      "System.Parent": 2613941
+    },
+    "multilineFieldsFormat": {
+      "System.Description": "html",
+      "Custom.DefinitionofDone": "html"
+    },
+    "relations": [
+      {
+        "rel": "System.LinkTypes.Hierarchy-Reverse",
+        "url": "https://dev.azure.com/AMBEV-SA/8982fa6d-ce2b-4001-b233-550138ac1f13/_apis/wit/workItems/2613941",
+        "attributes": {
+          "isLocked": false,
+          "name": "Parent"
+        }
+      }
+    ],
+    "_links": {
+      "self": {
+        "href": "https://dev.azure.com/AMBEV-SA/8982fa6d-ce2b-4001-b233-550138ac1f13/_apis/wit/workItems/2748621"
+      },
+      "workItemUpdates": {
+        "href": "https://dev.azure.com/AMBEV-SA/8982fa6d-ce2b-4001-b233-550138ac1f13/_apis/wit/workItems/2748621/updates"
+      },
+      "workItemRevisions": {
+        "href": "https://dev.azure.com/AMBEV-SA/8982fa6d-ce2b-4001-b233-550138ac1f13/_apis/wit/workItems/2748621/revisions"
+      },
+      "workItemComments": {
+        "href": "https://dev.azure.com/AMBEV-SA/8982fa6d-ce2b-4001-b233-550138ac1f13/_apis/wit/workItems/2748621/comments"
+      },
+      "html": {
+        "href": "https://dev.azure.com/AMBEV-SA/8982fa6d-ce2b-4001-b233-550138ac1f13/_workitems/edit/2748621"
+      },
+      "workItemType": {
+        "href": "https://dev.azure.com/AMBEV-SA/8982fa6d-ce2b-4001-b233-550138ac1f13/_apis/wit/workItemTypes/Business%20Story"
+      },
+      "fields": {
+        "href": "https://dev.azure.com/AMBEV-SA/8982fa6d-ce2b-4001-b233-550138ac1f13/_apis/wit/fields"
+      }
+    },
+    "url": "https://dev.azure.com/AMBEV-SA/8982fa6d-ce2b-4001-b233-550138ac1f13/_apis/wit/workItems/2748621"
+  }
+}

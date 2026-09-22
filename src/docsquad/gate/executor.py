@@ -106,6 +106,8 @@ class Executor:
             ProposalKind.CARD_COMMENT: None,  # comentario nao altera estado nem cria item
             ProposalKind.CARD_TRANSITION: self._check_transition,
             ProposalKind.CARD_CREATE: self._check_card_create,
+            ProposalKind.CARD_ASSIGN: None,  # atribuir pessoa nao altera estado nem cria item
+            ProposalKind.CARD_TAG: None,  # tag e rotulo, nao altera estado nem cria item
             ProposalKind.NOTEBOOK_WRITE: self._check_notebook_path,
         }
         if proposal.kind not in politica:
@@ -123,6 +125,8 @@ class Executor:
             ProposalKind.CARD_COMMENT: self._apply_card_comment,
             ProposalKind.CARD_TRANSITION: self._apply_card_transition,
             ProposalKind.CARD_CREATE: self._apply_card_create,
+            ProposalKind.CARD_ASSIGN: self._apply_card_assign,
+            ProposalKind.CARD_TAG: self._apply_card_tag,
             ProposalKind.NOTEBOOK_WRITE: self._apply_notebook_write,
         }[proposal.kind]
 
@@ -135,6 +139,12 @@ class Executor:
 
     def _apply_card_transition(self, p: Proposal) -> dict:
         return self.devops.set_state(int(p.target), p.payload["to_state"])
+
+    def _apply_card_assign(self, p: Proposal) -> dict:
+        return self.devops.set_assigned_to(int(p.target), p.payload["pessoa"])
+
+    def _apply_card_tag(self, p: Proposal) -> dict:
+        return self.devops.set_tags(int(p.target), p.payload["tags"])
 
     def _apply_card_create(self, p: Proposal) -> dict:
         return self.devops.create_work_item(

@@ -221,6 +221,37 @@ def propose_transition(card_id: int, to_state: str,
     console.print(f"[yellow]Proposta {p.id} criada em pending.[/]")
 
 
+@propose.command("assign")
+def propose_assign(card_id: int, pessoa: str):
+    """Propoe atribuir um card a alguem. `pessoa` e nome ou email."""
+    p = Proposal(kind=ProposalKind.CARD_ASSIGN, target=str(card_id),
+                 summary=f"Card {card_id}: atribuir a {pessoa}",
+                 payload={"pessoa": pessoa})
+    store.save(p)
+    console.print(f"[yellow]Proposta {p.id} criada em pending.[/] "
+                  f"Revise com: docs show {p.id}")
+
+
+@propose.command("tag")
+def propose_tag(card_id: int, tag: str):
+    """Propoe adicionar uma tag a um card, sem apagar as que ja existem."""
+    devops = DevOpsClient()
+    atual = devops.work_items([card_id], fields=["System.Id", "System.Tags"])
+    tags_atuais = [t.strip() for t in
+                   (atual[0]["fields"].get("System.Tags", "") if atual else "").split(";")
+                   if t.strip()]
+    if tag.strip() in tags_atuais:
+        console.print(f"[yellow]Card {card_id} ja tem a tag '{tag}'. Nada a propor.[/]")
+        raise typer.Exit()
+    tags_final = "; ".join(tags_atuais + [tag.strip()])
+    p = Proposal(kind=ProposalKind.CARD_TAG, target=str(card_id),
+                 summary=f"Card {card_id}: tags -> {tags_final}",
+                 payload={"tags": tags_final})
+    store.save(p)
+    console.print(f"[yellow]Proposta {p.id} criada em pending.[/] "
+                  f"Revise com: docs show {p.id}")
+
+
 @propose.command("notebook")
 def propose_notebook(caminho: str, arquivo: str):
     """Propoe escrita de notebook no Databricks."""

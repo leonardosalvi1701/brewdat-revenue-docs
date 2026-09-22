@@ -217,6 +217,23 @@ class DevOpsClient:
         patch = [{"op": "add", "path": "/fields/System.State", "value": new_state}]
         return self._patch(url, patch)
 
+    def set_assigned_to(self, work_item_id: int, pessoa: str) -> dict:
+        """Atribui o card a `pessoa` (nome ou email). O DevOps resolve a identidade."""
+        url = f"{self.org_url}/{self._project}/_apis/wit/workitems/{work_item_id}"
+        patch = [{"op": "add", "path": "/fields/System.AssignedTo", "value": pessoa}]
+        return self._patch(url, patch)
+
+    def set_tags(self, work_item_id: int, tags: str) -> dict:
+        """Sobrescreve `System.Tags` com a string ja pronta (`tag1; tag2`).
+
+        Sobrescreve, nao funde: quem monta a lista final e `docs propose tag`,
+        no momento de propor, para que `docs show` exiba o valor exato que vai
+        ser publicado. Ver ADR-0013.
+        """
+        url = f"{self.org_url}/{self._project}/_apis/wit/workitems/{work_item_id}"
+        patch = [{"op": "add", "path": "/fields/System.Tags", "value": tags}]
+        return self._patch(url, patch)
+
     def create_work_item(self, item_type: str, title: str, description: str = "",
                          parent_id: int | None = None,
                          iteration: str | None = None) -> dict:

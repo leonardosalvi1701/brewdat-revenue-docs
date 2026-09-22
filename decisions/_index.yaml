@@ -79,3 +79,17 @@ decisoes:
     projeto: docsquad
     data: 2026-09-16
     arquivo: ADR-0011-agente-le-sistema-externo.md
+
+  - id: ADR-0012
+    titulo: "Atribuicao de responsavel em card entra como novo tipo de proposta"
+    status: vigente
+    projeto: docsquad
+    data: 2026-09-22
+    arquivo: ADR-0012-atribuicao-de-card-como-proposta.md
+
+  - id: ADR-0013
+    titulo: "Tag de card entra como novo tipo de proposta"
+    status: vigente
+    projeto: docsquad
+    data: 2026-09-22
+    arquivo: ADR-0013-tag-de-card-como-proposta.md

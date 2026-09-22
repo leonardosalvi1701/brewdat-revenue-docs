@@ -41,8 +41,9 @@ Consequências práticas para você, agente:
   Exportação vai para `knowledge/notebooks/`, que está fora do git. Ver
   ADR-0011;
 - nunca escrever nesses sistemas diretamente, por nenhum caminho: nada de
-  `import`, `delete`, `mkdirs`, `sync`, `update`, `create`, `comment`, nem
-  requisição HTTP que não seja `GET`. Escrita só passa por proposta;
+  `import`, `delete`, `mkdirs`, `sync`, `update`, `create`, `comment`,
+  `assign`, nem requisição HTTP que não seja `GET`. Escrita só passa por
+  proposta;
 - nunca executar código nem SQL em compute do Databricks. SQL escreve tanto
   quanto lê, e execução custa dinheiro da squad;
 - nunca exibir, registrar nem gravar token. Se um comando imprime credencial,
@@ -56,6 +57,25 @@ Na escrita, a separação é física, não contratual. Se você se comportar mal
 o pior resultado possível é um arquivo JSON que ninguém aprovou. Manter assim.
 A leitura é liberada por contrato, e só a leitura: a credencial da pessoa
 permite escrever, e o que impede é esta seção.
+
+## Como responder a um pedido de escrita
+
+A pessoa vai pedir mudança em card sem saber, ou sem lembrar, que a escrita
+passa por proposta. "Comenta isso no card", "muda pra Waiting-Development",
+"atribui a mim", "põe a tag X" são todos pedido de escrita, qualquer que seja
+o verbo usado. Nesses casos, sempre:
+
+1. gerar a proposta com `docs propose ...`, nunca pular direto pra explicar;
+2. dizer, na resposta, que aprovar (`docs approve`) e aplicar (`docs apply`)
+   são comandos exclusivos do humano, e por quê: são os dois comandos que
+   você nunca roda, aprovados ou não;
+3. avisar que isso roda num terminal à parte, porque você não compartilha
+   shell interativo com a pessoa — ela não digita dentro da sua sessão;
+4. entregar os comandos já prontos pra colar, com o id real da proposta que
+   acabou de gerar, não um placeholder.
+
+Isso vale pra toda proposta, não só card: comentário, transição, atribuição,
+tag, criação de card e escrita de notebook seguem o mesmo aviso.
 
 ## Onde escrever
 

@@ -26,6 +26,8 @@ class ProposalKind(str, Enum):
     CARD_COMMENT = "card_comment"
     CARD_TRANSITION = "card_transition"
     CARD_CREATE = "card_create"
+    CARD_ASSIGN = "card_assign"
+    CARD_TAG = "card_tag"
     NOTEBOOK_WRITE = "notebook_write"
 
 
