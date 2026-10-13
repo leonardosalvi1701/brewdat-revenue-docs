@@ -29,6 +29,16 @@ outro revisor, no outro documento.
    Cobertura" sao sistemas diferentes: o agente escritor tem vies de
    confundir os dois por familiaridade generica com a squad, e nao pela
    fonte real do bloco. Ver review-log/2026-09-09-sprint-review-S4-Q3-26-REVENUE-DI-alice.md.
+6. **Frentes de produto e etapas.** Nao deixe que nomes ou frameworks em comum
+   juntem modelos diferentes ou etapas distintas de produtizacao. Confira se
+   treino, predict/serving, migracao, suporte e documentacao estao atribuídos
+   ao produto e ao card corretos.
+7. **Estado no fechamento.** Para card transbordado, reconstrua o estado ate a
+   data final da sprint e diferencie-o da situacao registrada depois. Exija
+   fonte datada e snapshot adicional no frontmatter quando o card veio da
+   sprint seguinte.
+8. **Imagem e atividade.** Confirme que cada figura vem do card e comentario
+   da atividade que ela ilustra e que o conteudo visual confere com a legenda.
 
 ## Insumos obrigatorios
 - decisions/_index.yaml e os ADRs vigentes

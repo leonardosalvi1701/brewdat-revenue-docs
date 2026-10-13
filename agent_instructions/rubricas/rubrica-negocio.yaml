@@ -51,6 +51,24 @@ metricas:
     alvo: 1.0
     bloqueante: false
 
+  - id: frentes_sem_conflacao
+    descricao: "Produtos distintos e etapas com resultados ou bloqueios diferentes nao foram fundidos numa entrega unica"
+    alvo: 1.0
+    bloqueante: true
+    como_medir: "conferir cada atividade contra titulo, descricao e comentarios dos cards; modelos de desconto e de quantidade devem permanecer distinguiveis"
+
+  - id: transbordo_e_nao_planejado
+    descricao: "Card transbordado e trabalho nao planejado sem card aparecem como casos distintos, com responsavel e status temporal claros"
+    alvo: 1.0
+    bloqueante: true
+    como_medir: "transbordo descreve progresso e pendencias no fechamento; trabalho sem card cita a memoria do autor e nao e atribuido ao card de quem recebeu apoio"
+
+  - id: imagem_correspondente
+    descricao: "Cada imagem representa a atividade e o produto descritos na legenda"
+    alvo: 1.0
+    bloqueante: true
+    como_medir: "abrir cada imagem e conferir produto, DAG ou resultado com o comentario de origem; sem imagens, nao se aplica"
+
 veredito:
   aprovado: "nenhuma metrica bloqueante violada"
   revisar: "ate duas violacoes bloqueantes"

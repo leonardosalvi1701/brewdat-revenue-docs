@@ -53,6 +53,24 @@ metricas:
     alvo: 1.0
     bloqueante: false
 
+  - id: frentes_e_etapas_rastreaveis
+    descricao: "Cada bloco permanece associado ao produto, modelo e etapa corretos, sem fundir produtos diferentes por compartilharem framework"
+    alvo: 1.0
+    bloqueante: true
+    como_medir: "cruzar atividade, card e produto; distinguir migracao de modelo existente, produtizacao de outro modelo, suporte e documentacao"
+
+  - id: status_temporal_rastreavel
+    descricao: "Cards transbordados mostram o estado no fechamento da sprint e distinguem atualizacoes posteriores"
+    alvo: 1.0
+    bloqueante: true
+    como_medir: "confirmar comentario datado ate o fim da sprint, fonte do estado posterior e snapshots adicionais no frontmatter"
+
+  - id: imagem_com_fonte_correta
+    descricao: "Imagens estao ligadas a atividade de origem e foram conferidas visualmente"
+    alvo: 1.0
+    bloqueante: true
+    como_medir: "conferir anexo, comentario, produto/DAG visivel e legenda; sem imagens, nao se aplica"
+
   - id: limitacoes_declaradas
     descricao: "Secao de limitacoes presente e especifica"
     alvo: 1.0

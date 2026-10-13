@@ -6,6 +6,8 @@ no texto que a squad apresenta na cerimonia de encerramento.
 ## O material com que voce trabalha
 - o rascunho em `outputs/sprint-review-*.md`, gerado por `docs sprint-review`;
 - o snapshot citado no frontmatter do rascunho, em `knowledge/cards/`;
+- quando houver cards transbordados, o snapshot da sprint seguinte ou a leitura
+  atual desses cards; inclua as fontes adicionais no frontmatter do paper;
 - o exemplar do padrao, em `knowledge/sprint-reviews/`;
 - `contracts/estilo-sprint-review.md`, o contrato de estilo;
 - `config/glossario.yaml`, o vocabulario canonico;
@@ -56,6 +58,13 @@ que voce sabe de outros papers. Confira o nome contra o titulo do card, a
 descricao, as tags ou `config/glossario.yaml` antes de escrever, mesmo
 quando o nome parecer obvio.
 
+Tambem nao misture modelos ou produtos distintos porque ambos foram
+produtizados no mesmo framework. Confirme se cada card trata, por exemplo, do
+modelo de quantidade ja existente ou do modelo de desconto, e se a etapa e
+features/treino, predict/serving, suporte a migracao ou documentacao. Uma frente
+pode ter varios cards; agrupe-os sem transformar etapas com resultados ou
+bloqueios diferentes em uma entrega unica.
+
 Quando a transcricao do autor contradiz o card (por exemplo, o autor diz que
 mudou de abordagem depois do ultimo comentario), a transcricao vale como
 fonte, porque e o insumo mais valioso dos seis. Mas registre a divergencia
@@ -79,6 +88,10 @@ Anexo do Azure DevOps normalmente exige autenticacao para renderizar fora do
 board. Confirme que a imagem aparece de fato no documento final antes de
 considerar o bloco fechado; se nao for possivel embutir, registre isso na
 lista de lacunas em vez de deixar um link quebrado silencioso.
+
+Antes de inserir, confirme que a imagem pertence ao comentario e a atividade
+que a legenda descreve. Abra a imagem e confira o produto, a DAG ou o resultado
+visivel. Nao associe imagem de uma migracao a produtizacao de outro modelo.
 
 ## Comentario nao e notebook
 Boa parte do rigor numerico de uma EDA fica no notebook, e o comentario do
@@ -115,6 +128,28 @@ historico) entra na mesma secao, na posicao que o arco pede, e nao numa
 secao separada so porque o board reclassificou a demanda. A reclassificacao
 e fato a registrar dentro do bloco, nao criterio para separar secao.
 
+### Cards transbordados e continuidade entre sprints
+O snapshot original pode nao trazer cards movidos depois para a proxima sprint.
+Procure cards da pessoa que estavam ativos no periodo e foram marcados como
+transbordo, consultando o snapshot seguinte ou a leitura atual do board. Inclua
+apenas o progresso feito ate o fechamento da sprint no corpo da review;
+descreva o que ficou pendente e por que. Use comentarios posteriores para
+indicar a continuacao, com data explicita, e nunca como prova de que a entrega
+ja estava concluida na sprint anterior. Registre o snapshot adicional no
+frontmatter.
+
+Nao confunda `Transbordo` com `Nao Planejado`: transbordo e trabalho planejado
+que continua na sprint seguinte; nao planejado e demanda que entrou sem estar
+planejada para a sprint. Apoio executado sem card proprio deve ficar em bloco
+separado de interferencias, com a memoria do autor identificada como fonte,
+como `sem card`. Nao o atribua a um card de outra pessoa so porque a tarefa
+apoiada tem um card.
+
+Documentacao tecnica e documentacao menos tecnica sao atividades distintas
+quando tem publicos ou entregaveis diferentes. Registre o que avancou dentro da
+sprint e sinalize como continuacao posterior qualquer revisao ou complemento
+feito depois do fechamento.
+
 ## Quando falta o card, e nao so a prosa
 O rascunho so tem lacuna visivel onde existe card sem prosa: `<!-- FALTA -->`
 marca um card vazio. Um marco que nunca virou card no board, por exemplo um
@@ -139,7 +174,10 @@ quando o bloco pode estar mais raso que a analise real porque a fonte era
 resumo em prosa, nao tabela de resultado; `card desatualizado` quando a
 transcricao do autor contradiz o card e voce seguiu a transcricao; `imagem
 fora do teto` quando o card tinha mais imagens candidatas do que o limite de
-5 permitia. Quem le a lista precisa conseguir responder tudo em uma passada.
+5 permitia. Registre tambem quando um card transbordado foi consultado em
+outra sprint, quando o status posterior difere do status no fechamento e
+quando uma atividade nao planejada veio da memoria do autor sem card. Quem le
+a lista precisa conseguir responder tudo em uma passada.
 
 ## O que voce nao faz
 Nao preenche a secao 3, de metricas: os numeros de story point, lead time e

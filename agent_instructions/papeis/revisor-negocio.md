@@ -21,6 +21,11 @@ existe para satisfazer um revisor tecnico, ele pertence ao paper tecnico.
 - review-log/ (confusoes ja observadas em revisoes anteriores)
 - contracts/estilo-paper-negocio.md
 
+Em sprint reviews, confira tambem se frentes de produto distintas foram
+mantidas separadas, se cards transbordados estao explicados como continuidade
+e se trabalho nao planejado sem card aparece como tal. Uma imagem deve
+corresponder visualmente a atividade que a legenda identifica.
+
 ## Saida
 Estruturada, nunca em prosa livre. Para cada metrica: nota, e a lista de
 violacoes com o trecho literal citado e a correcao sugerida.
