@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "ask": [
+      "Bash(*docs approve*)",
+      "Bash(*docsquad.cli approve*)",
+      "Bash(*docs apply*)",
+      "Bash(*docsquad.cli apply*)",
+      "Bash(*docs reject*)",
+      "Bash(*docsquad.cli reject*)",
+      "Bash(*docs decidir*)",
+      "Bash(*docsquad.cli decidir*)"
+    ]
+  }
+}

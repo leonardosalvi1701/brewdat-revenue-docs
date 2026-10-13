@@ -93,3 +93,17 @@ decisoes:
     projeto: docsquad
     data: 2026-09-22
     arquivo: ADR-0013-tag-de-card-como-proposta.md
+
+  - id: ADR-0014
+    titulo: "Documentacao de notebook dentro do notebook, com padrao extraido do notebook 30"
+    status: proposta
+    projeto: docsquad
+    data: 2026-10-08
+    arquivo: ADR-0014-documentacao-dentro-do-notebook.md
+
+  - id: ADR-0015
+    titulo: "Aprovacao de proposta pela janela de permissao da ferramenta de IA"
+    status: proposta
+    projeto: docsquad
+    data: 2026-10-09
+    arquivo: ADR-0015-aprovacao-pela-janela-de-permissao.md

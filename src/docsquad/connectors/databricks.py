@@ -7,7 +7,7 @@ from typing import Iterator
 import requests
 
 from ..auth import cabecalho_databricks
-from ..config import env, settings
+from ..config import env, perfil_databricks, settings
 
 
 class DatabricksClient:
@@ -18,7 +18,7 @@ class DatabricksClient:
         # automacao. O token do SSO dura cerca de uma hora, o que cobre uma
         # coleta com folga.
         token = token if token is not None else env("DATABRICKS_TOKEN", required=False)
-        perfil = perfil or env("DATABRICKS_CONFIG_PROFILE", required=False)
+        perfil = perfil or perfil_databricks()[0]
         header, self.metodo_auth = cabecalho_databricks(token, perfil)
         self.s = requests.Session()
         self.s.headers.update(header)

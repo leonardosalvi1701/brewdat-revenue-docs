@@ -8,6 +8,22 @@ termos:
     proibidos: ["taxa de aceite", "chance de compra", "propensao", "conversion rate"]
     publico: ambos
 
+  probabilidade_de_compra:
+    canonico: "probabilidade de compra"
+    definicao: "saida do modelo ps_purchase_probability: chance de o PDV comprar o brand pack no mes, com ou sem promocao. Nao varia com desconto nem com Qmin"
+    proibidos: ["chance de compra", "propensao de compra"]
+    publico: ambos
+    nota: >
+      Outro evento, de outro time, nao sinonimo de probabilidade de conversao.
+      Definido no notebook 30, lido em 08/10/2026. Ver ADR-0014.
+
+  fora_do_tempo:
+    canonico: "fora do tempo"
+    definicao: "medido em meses posteriores ao ultimo mes usado no ajuste, com parametros congelados no ajuste"
+    proibidos: ["out-of-time (em texto de negocio)"]
+    publico: ambos
+    nota: "em paper tecnico, 'OOT' e aceito depois da primeira ocorrencia por extenso"
+
   esforco_solicitado:
     canonico: "esforco solicitado"
     definicao: "distancia entre o Qmin e o volume normal de compra do PDV"

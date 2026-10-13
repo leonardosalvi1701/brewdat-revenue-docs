@@ -11,7 +11,9 @@ Fontes de verdade, editadas a mao, todas em `agent_instructions/`:
 
 - `contrato.md`, o contrato de trabalho no repositorio;
 - `papeis/*.md`, os papeis de agente;
-- `ferramentas/*.md`, o que muda de uma ferramenta para outra.
+- `ferramentas/*.md`, o que muda de uma ferramenta para outra;
+- `aprovacao.yaml`, os comandos que so rodam com aprovacao na janela de
+  permissao da ferramenta. Ver ADR-0015.
 
 Derivados, nunca editados a mao:
 
@@ -19,7 +21,10 @@ Derivados, nunca editados a mao:
 - `.claude/CLAUDE.md`, ponteiro com import `@`, para o Claude Code;
 - `.claude/commands/*.md`, slash commands do Claude Code;
 - `.github/copilot-instructions.md`, copia do contrato para o Copilot;
-- `.github/prompts/*.prompt.md`, prompt files do Copilot Chat.
+- `.github/prompts/*.prompt.md`, prompt files do Copilot Chat;
+- `.claude/settings.json`, regra `ask` do Claude Code;
+- `.codex/rules/docsquad.rules`, regra `prompt` do Codex;
+- `.github/hooks/aprovacao-humana.json`, hook do Copilot CLI e do VS Code.
 
 O Copilot recebe copia, e nao ponteiro, porque injeta o conteudo do arquivo
 direto no contexto e nao se pode contar com ele para abrir o alvo do ponteiro.
@@ -30,9 +35,12 @@ Rodar apos qualquer alteracao em `agent_instructions/`. Em CI, `--check`.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 from pathlib import Path
+
+import yaml
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -40,6 +48,7 @@ FONTE_DIR = ROOT / "agent_instructions"
 CONTRATO = FONTE_DIR / "contrato.md"
 PAPEIS_DIR = FONTE_DIR / "papeis"
 FERRAMENTAS_DIR = FONTE_DIR / "ferramentas"
+APROVACAO = FONTE_DIR / "aprovacao.yaml"
 
 AVISO = "<!-- GERADO POR scripts/sync_agent_files.py. NAO EDITAR A MAO. -->"
 FONTE = "<!-- Fonte: agent_instructions/. Alterar la, depois rodar o script. -->"
@@ -200,6 +209,68 @@ def wrappers() -> list[tuple[Path, str]]:
     return saida
 
 
+def aprovacao() -> dict:
+    return yaml.safe_load(APROVACAO.read_text(encoding="utf-8"))
+
+
+def claude_settings() -> tuple[Path, str]:
+    """Regra `ask`: o Claude Code pergunta antes, inclusive no modo automatico.
+
+    O curinga no comeco cobre `uv run docs`, `.venv/bin/docs` e comando
+    composto. Preferencia pessoal vai em `.claude/settings.local.json`, que
+    este script nao toca.
+    """
+    regras = []
+    for comando in aprovacao()["comandos"]:
+        regras += [f"Bash(*docs {comando}*)", f"Bash(*docsquad.cli {comando}*)"]
+    # JSON nao tem comentario, e chave desconhecida pode invalidar o arquivo
+    # inteiro. O aviso de gerado fica no docstring deste modulo.
+    conteudo = {"permissions": {"ask": regras}}
+    return ROOT / ".claude" / "settings.json", json.dumps(conteudo, indent=2) + "\n"
+
+
+def codex_rules() -> tuple[Path, str]:
+    """`prompt` em cada prefixo. O Codex casa prefixo exato, sem curinga."""
+    cfg = aprovacao()
+    comandos = cfg["comandos"]
+    linhas = [
+        f"# GERADO POR scripts/sync_agent_files.py a partir de {rel(APROVACAO)}.",
+        "# NAO EDITAR A MAO. So carrega com o projeto marcado como confiavel.",
+        "",
+    ]
+    for prefixo in cfg["prefixos"]:
+        exemplo = " ".join([*prefixo, comandos[0], "abc123"])
+        linhas += [
+            "prefix_rule(",
+            f"    pattern = {json.dumps([*prefixo, comandos])},",
+            '    decision = "prompt",',
+            '    justification = "Decidir proposta de escrita e da pessoa: '
+            'confira o docs show antes de aprovar. Ver ADR-0015.",',
+            f"    match = [{json.dumps(exemplo)}],",
+            ")",
+            "",
+        ]
+    return ROOT / ".codex" / "rules" / "docsquad.rules", "\n".join(linhas)
+
+
+def copilot_hooks() -> tuple[Path, str]:
+    """Hook no formato do Copilot CLI, que o VS Code tambem aceita."""
+    script = "scripts/hooks/exigir_aprovacao.py"
+    conteudo = {
+        "version": 1,
+        "hooks": {
+            "preToolUse": [{
+                "type": "command",
+                "bash": f'python3 "$(git rev-parse --show-toplevel)/{script}"',
+                "powershell": f'python "$(git rev-parse --show-toplevel)/{script}"',
+                "timeoutSec": 15,
+            }],
+        },
+    }
+    return (ROOT / ".github" / "hooks" / "aprovacao-humana.json",
+            json.dumps(conteudo, indent=2) + "\n")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -209,7 +280,8 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    alvos = [agents_md(), claude_md(), copilot_instructions(), *wrappers()]
+    alvos = [agents_md(), claude_md(), copilot_instructions(), *wrappers(),
+             claude_settings(), codex_rules(), copilot_hooks()]
 
     desatualizados: list[Path] = []
     for caminho, conteudo in alvos:

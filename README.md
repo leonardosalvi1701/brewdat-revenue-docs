@@ -175,17 +175,34 @@ esse arquivo, no formato de `templates/card-comment.md` e no estilo de
 referenciaram o card (se o GitHub estiver conectado) e o notebook que mudou
 (se o Databricks estiver conectado). Voce so aponta o arquivo:
 
+Pelo chat, o caminho normal, voce so pede: "comenta isso no card 2680725".
+O agente gera a proposta, mostra o texto exato com `docs show`, e pede para
+rodar `docs approve <id> --aplicar`. A ferramenta para e pergunta se pode
+executar: aprovar ali e a sua aprovacao, e publica. Recusar ali nao publica
+nada, e a proposta continua pendente.
+
 ```bash
 docs propose comment 2680725 --file rascunho.md   # agente: proposals/pending/*.json
-docs review                                       # o que esta pendente
-docs show a3f9c210                                # o texto exato que sera publicado
-docs approve a3f9c210 --by "Seu Nome"              # humano: aprova e se identifica
-docs apply --all --dry-run                        # confere antes
-docs apply --all                                  # humano: so agora escreve no DevOps
+docs show a3f9c210                                # agente: o texto exato, na conversa
+docs approve a3f9c210 --aplicar                   # a ferramenta pergunta; voce aprova
 ```
 
-`docs propose` e o unico comando de escrita que um agente roda por conta
-propria. `approve` e `apply` sao sempre seus.
+A pergunta e garantida pela configuracao de cada ferramenta, gerada de
+`agent_instructions/aprovacao.yaml` por `scripts/sync_agent_files.py`: regra
+`ask` no Claude Code, regra `prompt` no Codex e hook no Copilot, no CLI e no
+VS Code. O que precisa estar ligado em cada uma esta em
+`agent_instructions/ferramentas/`. Ver ADR-0015.
+
+Pelo terminal, para revisar varias de uma vez, `docs decidir` percorre as
+pendentes da mais antiga para a mais nova, mostra cada uma e pergunta
+`(a)provar  (r)ecusar  (p)ular  (s)air`. No fim, pergunta se aplica as
+aprovadas. So roda em terminal interativo.
+
+Nos dois caminhos a identidade de quem aprova sai do `az login`; `--by` ou
+`--como` sobrescrevem. Nenhum dos comandos de decisao roda em CI.
+
+`docs propose` e o unico comando de escrita que um agente roda sem perguntar.
+Decidir e sempre seu, pela janela de permissao ou pelo terminal.
 
 ---
 
@@ -288,15 +305,24 @@ databricks auth login \
    ```
 5. Confira no repo: `docs config-check` deve mostrar `ok Databricks`.
 
-**Sessao expirada.** Rode o mesmo `databricks auth login --profile revenue`,
-ou o script de novo.
+**Sessao expirada.** Rode o mesmo
+`databricks auth login --host <DATABRICKS_HOST> --profile revenue`, ou o script
+de novo.
 
 **Trocar ou apagar.** Para usar outro perfil, mude
 `DATABRICKS_CONFIG_PROFILE` no `.env`, ou rode o script com outro `--perfil`.
 Para apagar, remova o bloco `[nome]` do `~/.databrickscfg`.
 
-A extensao do Databricks no VS Code usa o mesmo `~/.databrickscfg`: um perfil
-logado nela serve para o `docs`, e vice-versa.
+A extensao do Databricks no VS Code usa o mesmo `~/.databrickscfg`, mas nem
+todo perfil dela serve para o `docs`: so o de login SSO, com
+`auth_type = databricks-cli`. Perfil `azure-cli` ou de PAT aparece como valido
+em `databricks auth profiles` e nao devolve token ao `docs`. O script detecta
+e cria um `<nome>-sso` ao lado, sem mexer no original.
+
+O terminal integrado da extensao exporta `DATABRICKS_CONFIG_PROFILE` com o
+perfil dela. O `docs` ignora esse valor quando o `.env` tem um, e o
+`docs config-check` avisa da divergencia, porque a CLI chamada a mao naquele
+terminal continua usando o da extensao.
 
 ### Passo a passo manual
 
@@ -365,17 +391,30 @@ parte "A mao".
 **8. Conferir**
 
 ```bash
-docs config-check     # "autenticacao: Entra ID (az login)", "ok Azure DevOps", "ok Databricks"
+docs config-check     # uma linha por item: repo, .env, DevOps, CLI, host, perfil, login, pasta
 docs quem-sou-eu      # como o DevOps te identifica
 ```
 
 ### Quando algo falha
 
+Primeiro rode `docs config-check`, e cole a saida inteira em qualquer pedido de
+ajuda. Ele confere, em ordem, o repo contra o GitHub, o `.env`, o DevOps, a CLI
+do Databricks, o host, o perfil e de onde veio o nome dele, o login e a pasta
+pessoal. Cada falha diz o que fazer, e o comando sai com codigo 1 se houver
+alguma. Rodar o script de novo corrige a maior parte sozinho.
+
 | Sintoma | O que fazer |
 |---|---|
 | `docs: command not found` | `source .venv/bin/activate`; se nao existir `.venv`, rodar o script |
 | `O az nao devolveu token` | sessao expirou: `az login` |
-| `A CLI do Databricks nao devolveu token` | sessao expirou: `databricks auth login --profile <perfil>`, ou rodar o script |
+| `O perfil X nao existe` | o nome no `.env`, ou exportado no terminal, nao bate com `databricks auth profiles`. Corrigir o `.env` ou rodar o script |
+| `O perfil X usa auth_type=azure-cli` | perfil que nao e SSO. Rodar o script, que cria `X-sso` |
+| `A CLI do Databricks nao devolveu token` | perfil SSO com sessao expirada: o comando de login sai na mensagem |
+| `CLI legada do Databricks` | pacote `databricks-cli` do pip, 0.x. O script remove do `.venv`; fora dele, `pip uninstall databricks-cli`. Depois `hash -r` |
+| `bash: .../databricks: No such file or directory` | o shell lembrava de uma CLI removida: `hash -r` ou terminal novo |
+| `401 Credential was not sent` | `DATABRICKS_HOST` com `http://`, `?o=` ou caminho: deixar so `https://<workspace>.azuredatabricks.net` |
+| `pasta ... nao existe` | rodar o script, que cria a pasta pessoal; se o caminho for fixo, sem seu login, `git pull` |
+| `repo N commit(s) atras` | `git pull` |
 | `DATABRICKS_CONFIG_PROFILE nao esta definido` | rodar `scripts/preparar_ambiente.sh --perfil <nome>` |
 | `autenticacao: PAT (AZDO_PAT)` sem querer | apagar o valor de `AZDO_PAT` no `.env` |
 | navegador nao abre no WSL | `az login --use-device-code`; no Databricks, copiar a URL |
@@ -447,7 +486,7 @@ Onde falta material, o rascunho deixa a lacuna a vista. Ver ADR-0009.
 | `config/glossario.yaml` | vocabulario canonico. Um conceito, um termo |
 | `decisions/` | ADRs. A fonte da verdade do "por que" |
 | `contracts/` | contratos de estilo. Nao vao para o indice de busca |
-| `templates/` | os cinco padroes de documento |
+| `templates/` | os seis padroes de documento |
 | `agent_instructions/` | contrato, papeis, rubricas e notas por ferramenta |
 | `review-log/` | comentarios de revisores humanos, transcritos |
 | `knowledge/` | corpus recuperavel: snapshots, dossies, papers, reviews |
@@ -461,13 +500,16 @@ Onde falta material, o rascunho deixa a lacuna a vista. Ver ADR-0009.
 2. **Paper de negocio** (`templates/paper-negocio.md`) - teto de 10 paginas
 3. **Card** (`templates/card.md`) - Descricao, DoR, DoD e lista de tarefas
 4. **Comentario de card** (`templates/card-comment.md`) - formato 📌 da squad
-5. **Documentacao de notebook** (`templates/notebook-doc.md`)
+5. **Documentacao de notebook** (`templates/notebook-doc.md`) - dentro do proprio notebook
 6. **Sprint review** (`templates/sprint-review.md`)
 
 Os padroes 3 e 4 foram extraidos dos 43 cards e 170 comentarios da S3-Q3-26,
 e nao desenhados: cada item do DoD e um item que a squad ja usava. Ver
 ADR-0010, que registra tambem as duas excecoes, o DoR e o portao de
 `Waiting-QA`.
+
+O padrao 5 foi extraido do notebook 30, do repositorio de modelagem, e a voz
+esta em `contracts/estilo-notebook.md`. Ver ADR-0014.
 
 ---
 

@@ -1,0 +1,23 @@
+# Comandos do docs que so rodam depois que a pessoa aprova na janela de
+# permissao da ferramenta de IA. Fonte unica: scripts/sync_agent_files.py gera
+# a partir daqui a regra de cada ferramenta. Ver ADR-0015.
+#
+#   Claude Code  .claude/settings.json, regra `ask`
+#   Codex        .codex/rules/docsquad.rules, `prefix_rule` com `prompt`
+#   Copilot      .github/hooks/aprovacao-humana.json, hook `preToolUse` que
+#                responde `ask`, lido pelo Copilot CLI e pelo VS Code
+
+comandos:
+  - approve
+  - apply
+  - reject
+  - decidir
+
+# Jeitos de chamar o docs que aparecem na pratica. O Codex casa por prefixo
+# exato e precisa de cada um; Claude e Copilot casam por padrao.
+prefixos:
+  - [docs]
+  - [uv, run, docs]
+  - [.venv/bin/docs]
+  - [python, -m, docsquad.cli]
+  - [python3, -m, docsquad.cli]

@@ -27,8 +27,10 @@ os dois se faz por referência, nunca por cópia de código.
 **Nenhum agente escreve em sistema externo.**
 
 Um agente produz uma proposta, que é um arquivo JSON em `proposals/pending/`.
-Um humano aprova e se identifica. Um executor separado aplica apenas o que está
-em `proposals/approved/`.
+Um humano aprova e se identifica, num de dois lugares: na janela de permissão
+da ferramenta de IA, quando o agente pede `docs approve`, ou no
+`docs decidir`, num terminal dele. Um executor separado aplica apenas o que
+está em `proposals/approved/`. Ver ADR-0015.
 
 Consequências práticas para você, agente:
 
@@ -49,12 +51,22 @@ Consequências práticas para você, agente:
 - nunca exibir, registrar nem gravar token. Se um comando imprime credencial,
   não repassar a saída;
 - nunca importar nem instanciar `docsquad.gate.executor.Executor`;
-- nunca rodar `docs apply`, `docs approve` ou `docs reject`. Esses comandos são
-  do humano;
-- rodar `docs propose ...` é permitido, porque só cria arquivo em `pending/`.
+- rodar `docs propose ...` é permitido, porque só cria arquivo em `pending/`;
+- pedir `docs approve <id> --aplicar` ou `docs reject <id> --reason "..."` é
+  permitido só nas condições da seção abaixo. A ferramenta pergunta à pessoa
+  antes de executar, sempre, e o clique dela é a aprovação;
+- nunca rodar `docs decidir` nem `docs apply`. O primeiro é o caminho do
+  terminal da pessoa; o segundo já vem junto do `approve --aplicar`;
+- nunca contornar a janela de permissão: nada de chamar `ProposalStore` em
+  Python, mover ou editar JSON em `proposals/`, juntar vários `approve` num
+  comando composto, ou mexer em `.claude/settings.json`, `.codex/rules/`,
+  `.github/hooks/`, `agent_instructions/aprovacao.yaml` ou
+  `scripts/hooks/`. Se um `approve` rodar sem a ferramenta ter perguntado,
+  avisar a pessoa na hora: a configuração está quebrada.
 
-Na escrita, a separação é física, não contratual. Se você se comportar mal,
-o pior resultado possível é um arquivo JSON que ninguém aprovou. Manter assim.
+Na escrita, a separação depende da janela de permissão da ferramenta, gerada
+por `scripts/sync_agent_files.py`. Se você se comportar mal, o pior resultado
+possível é uma pergunta que a pessoa recusa. Manter assim.
 A leitura é liberada por contrato, e só a leitura: a credencial da pessoa
 permite escrever, e o que impede é esta seção.
 
@@ -66,13 +78,16 @@ passa por proposta. "Comenta isso no card", "muda pra Waiting-Development",
 o verbo usado. Nesses casos, sempre:
 
 1. gerar a proposta com `docs propose ...`, nunca pular direto pra explicar;
-2. dizer, na resposta, que aprovar (`docs approve`) e aplicar (`docs apply`)
-   são comandos exclusivos do humano, e por quê: são os dois comandos que
-   você nunca roda, aprovados ou não;
-3. avisar que isso roda num terminal à parte, porque você não compartilha
-   shell interativo com a pessoa — ela não digita dentro da sua sessão;
-4. entregar os comandos já prontos pra colar, com o id real da proposta que
-   acabou de gerar, não um placeholder.
+2. rodar `docs show <id>`, para o conteúdo exato que vai ser publicado
+   aparecer na conversa. É o que a pessoa confere antes de aprovar;
+3. se ela pediu para publicar, e não só para rascunhar, pedir
+   `docs approve <id> --aplicar`, um comando por proposta. Avisar antes que a
+   ferramenta vai perguntar, e que aprovar ali publica o que o `show`
+   mostrou;
+4. se ela recusar na janela, ou pedir ajuste, não tentar de novo: ajustar e
+   gerar proposta nova, ou recusar a antiga com `docs reject` se ela pedir;
+5. se ela só pediu rascunho, parar na proposta e dizer que ela aprova quando
+   quiser, pedindo no chat ou com `docs decidir` num terminal dela.
 
 Isso vale pra toda proposta, não só card: comentário, transição, atribuição,
 tag, criação de card e escrita de notebook seguem o mesmo aviso.
@@ -94,10 +109,12 @@ Você não edita sem pedido explícito:
 - `src/docsquad/gate/`, o núcleo de segurança;
 - `tests/test_gate.py` e `tests/fixtures/`, a garantia desse núcleo;
 - `config/settings.yaml`, que descreve o processo real da squad;
-- `proposals/approved/`, `rejected/` e `applied/`, que são decisão humana.
+- `proposals/approved/`, `rejected/` e `applied/`, que são decisão humana;
+- `agent_instructions/aprovacao.yaml` e `scripts/hooks/`, que definem quando
+  a ferramenta pergunta antes de decidir proposta.
 
 Você nunca edita, em nenhuma hipótese, porque são gerados: `AGENTS.md`,
-`.claude/` e `.github/`. Alterar a fonte em `agent_instructions/` e rodar o
+`.claude/`, `.codex/` e `.github/`. Alterar a fonte em `agent_instructions/` e rodar o
 script.
 
 ## Antes de fechar qualquer alteração
@@ -184,7 +201,9 @@ resolve esse conflito sozinho, e nem deveria. O autor arbitra.
 - português do Brasil;
 - o template manda: `templates/` define os seis padrões de documento, e
   `contracts/` define o estilo de cada um que já tem contrato escrito, hoje
-  comentário de card e sprint review;
+  card e comentário de card, sprint review e notebook;
+- documentação de notebook mora no próprio notebook, em células markdown, e
+  não em arquivo separado. Ver `contracts/estilo-notebook.md` e ADR-0014;
 - toda afirmação com número cita a fonte, com data;
 - incerteza declarada como incerteza, nunca omitida.
 
@@ -205,3 +224,23 @@ Prompt files em `.github/prompts/*.prompt.md`, com `mode: agent`. Invocar por
 ## Autoria de commit
 A mensagem de commit sugerida pelo Copilot as vezes traz trailer de coautoria.
 Remover antes de commitar, conforme o contrato.
+
+## Aprovacao
+`.github/hooks/aprovacao-humana.json`, gerado, chama
+`scripts/hooks/exigir_aprovacao.py` antes de cada ferramenta. Quando a
+chamada roda `docs approve`, `apply`, `reject` ou `decidir`, o hook responde
+`ask` e o Copilot pergunta antes de executar. O mesmo arquivo vale para o
+Copilot CLI e para o modo agente do VS Code.
+
+O que precisa estar ligado:
+
+- no VS Code, a pasta marcada como confiavel (Workspace Trust) e os hooks
+  ligados (`chat.useHooks`, ligado por padrao). A organizacao pode desligar
+  hooks; nesse caso, aprovar so pelo `docs decidir`;
+- nao usar os niveis "Allow all" ou "Autopilot" neste repo, nem
+  `--allow-all-tools` no CLI: a documentacao nao garante que eles respeitem
+  o `ask`.
+
+No agente de nuvem do Copilot nao ha ninguem para clicar: o hook vira recusa,
+e o proprio `docs` recusa decidir proposta quando `CI` ou `GITHUB_ACTIONS`
+esta definido.

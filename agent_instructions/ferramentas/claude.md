@@ -26,5 +26,13 @@ O contrato vale integralmente, e a ferramenta tem shell. Leitura pelas CLIs
 (`databricks`, `az`, `gh`) e pelos comandos de leitura do `docs` e permitida,
 sempre com `--profile` explicito no Databricks, escolhido pela pessoa. Escrita
 nunca: nada de subcomando que cria, altera ou apaga, nada de SQL ou codigo em
-compute, e nada de `docs apply`, `docs approve` ou `docs reject`.
-`docs propose` e permitido.
+compute, e nada de `docs decidir` ou `docs apply`. `docs propose` e
+permitido, e `docs approve <id> --aplicar` e `docs reject` so nas condicoes
+do contrato.
+
+## Aprovacao
+`.claude/settings.json`, gerado, tem regra `ask` para `docs approve`,
+`apply`, `reject` e `decidir`. Regra `ask` pergunta sempre, inclusive no modo
+automatico, e ganha de qualquer `allow`. Por isso "nao perguntar de novo" na
+janela nao libera o comando. Preferencia pessoal vai em
+`.claude/settings.local.json`, que o script nao toca.

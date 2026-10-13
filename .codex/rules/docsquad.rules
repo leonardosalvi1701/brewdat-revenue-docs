@@ -1,0 +1,37 @@
+# GERADO POR scripts/sync_agent_files.py a partir de agent_instructions/aprovacao.yaml.
+# NAO EDITAR A MAO. So carrega com o projeto marcado como confiavel.
+
+prefix_rule(
+    pattern = ["docs", ["approve", "apply", "reject", "decidir"]],
+    decision = "prompt",
+    justification = "Decidir proposta de escrita e da pessoa: confira o docs show antes de aprovar. Ver ADR-0015.",
+    match = ["docs approve abc123"],
+)
+
+prefix_rule(
+    pattern = ["uv", "run", "docs", ["approve", "apply", "reject", "decidir"]],
+    decision = "prompt",
+    justification = "Decidir proposta de escrita e da pessoa: confira o docs show antes de aprovar. Ver ADR-0015.",
+    match = ["uv run docs approve abc123"],
+)
+
+prefix_rule(
+    pattern = [".venv/bin/docs", ["approve", "apply", "reject", "decidir"]],
+    decision = "prompt",
+    justification = "Decidir proposta de escrita e da pessoa: confira o docs show antes de aprovar. Ver ADR-0015.",
+    match = [".venv/bin/docs approve abc123"],
+)
+
+prefix_rule(
+    pattern = ["python", "-m", "docsquad.cli", ["approve", "apply", "reject", "decidir"]],
+    decision = "prompt",
+    justification = "Decidir proposta de escrita e da pessoa: confira o docs show antes de aprovar. Ver ADR-0015.",
+    match = ["python -m docsquad.cli approve abc123"],
+)
+
+prefix_rule(
+    pattern = ["python3", "-m", "docsquad.cli", ["approve", "apply", "reject", "decidir"]],
+    decision = "prompt",
+    justification = "Decidir proposta de escrita e da pessoa: confira o docs show antes de aprovar. Ver ADR-0015.",
+    match = ["python3 -m docsquad.cli approve abc123"],
+)

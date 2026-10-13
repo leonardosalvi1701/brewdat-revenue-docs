@@ -17,9 +17,12 @@ ele.
 """
 from __future__ import annotations
 
+import configparser
 import json
+import os
 import shutil
 import subprocess
+from pathlib import Path
 
 # Id de recurso do Azure DevOps no Entra ID. E publico e igual em qualquer
 # tenant, e nao um identificador da Ambev.
@@ -100,17 +103,137 @@ INSTRUCAO_DATABRICKS = (
     "Ou rode scripts/preparar_ambiente.sh, que faz os dois."
 )
 
+# `auth token` so le o cache do login SSO. Perfil de outro tipo autentica a
+# CLI normalmente, aparece como valido em `databricks auth profiles`, e mesmo
+# assim nao devolve token aqui. Desconhecido passa: perfil antigo sem
+# auth_type ainda pode ter sessao SSO, e a propria CLI decide.
+TIPOS_SSO = {"databricks-cli", "desconhecido"}
+
+
+def arquivo_databrickscfg() -> Path:
+    """O mesmo arquivo que a CLI le, inclusive quando sobrescrito por variavel."""
+    return Path(os.getenv("DATABRICKS_CONFIG_FILE") or Path.home() / ".databrickscfg")
+
+
+def _tipo_perfil(secao) -> str:
+    if secao.get("auth_type"):
+        return secao["auth_type"].strip()
+    if "token" in secao:
+        return "pat"
+    if "client_secret" in secao:
+        return "service principal"
+    return "desconhecido"
+
+
+def ler_perfis(caminho: Path | None = None) -> dict[str, dict] | None:
+    """Perfis do ~/.databrickscfg, so com host e tipo de autenticacao.
+
+    Devolve None quando o arquivo nao existe. Nenhum valor de credencial sai
+    daqui: o arquivo pode ter token em texto puro, e o que este modulo devolve
+    vai para a tela.
+    """
+    caminho = caminho or arquivo_databrickscfg()
+    if not caminho.is_file():
+        return None
+    # DEFAULT vira secao comum, como a CLI trata. Sem isto o configparser o
+    # espalharia como valor padrao em todos os perfis.
+    cp = configparser.ConfigParser(default_section="__sem_padrao__",
+                                   interpolation=None, strict=False)
+    cp.read(caminho, encoding="utf-8")
+    perfis = {}
+    for nome in cp.sections():
+        secao = cp[nome]
+        if nome.startswith("__") or not secao.get("host"):
+            continue
+        perfis[nome] = {"host": secao["host"].strip().rstrip("/"),
+                        "tipo": _tipo_perfil(secao)}
+    return perfis
+
+
+def cli_legada(caminho: str) -> bool:
+    """A CLI legada (pacote `databricks-cli` do pip, 0.x) e script Python.
+
+    A nova e binario. Ler a primeira linha distingue as duas sem executar
+    nada, e a legada repassa os comandos para a nova com aviso no meio da
+    saida, o que nao se quer descobrir rodando.
+    """
+    try:
+        with open(caminho, "rb") as fh:
+            primeira = fh.readline(200)
+    except OSError:
+        return False
+    return primeira.startswith(b"#!") and b"python" in primeira
+
+
+def clis_databricks(path_env: str | None = None) -> list[str]:
+    """Todo `databricks` executavel no PATH, na ordem em que o shell acha."""
+    vistos, achados = set(), []
+    for pasta in (path_env if path_env is not None else os.getenv("PATH", "")).split(os.pathsep):
+        candidato = os.path.join(pasta, "databricks")
+        real = os.path.realpath(candidato)
+        if os.path.isfile(candidato) and os.access(candidato, os.X_OK) and real not in vistos:
+            vistos.add(real)
+            achados.append(candidato)
+    return achados
+
+
+def cli_databricks() -> str:
+    """Caminho da CLI nova. Pula a legada, que pode estar na frente no PATH."""
+    primeira = shutil.which("databricks")
+    if primeira is None:
+        raise SemCredencial(
+            "O comando `databricks` nao esta instalado.\n" + INSTRUCAO_DATABRICKS)
+    if not cli_legada(primeira):
+        return primeira
+    for caminho in clis_databricks():
+        if not cli_legada(caminho):
+            return caminho
+    raise SemCredencial(
+        f"So existe a CLI legada do Databricks, em {primeira}. Ela nao faz login "
+        "SSO. Remova com `pip uninstall databricks-cli` e rode "
+        "scripts/preparar_ambiente.sh, que instala a nova.")
+
+
+def _comando_login(perfil: str, host: str | None) -> str:
+    host = host or os.getenv("DATABRICKS_HOST") or "<DATABRICKS_HOST>"
+    return f"databricks auth login --host {host} --profile {perfil}"
+
+
+def checar_perfil(perfil: str) -> None:
+    """Para antes de chamar a CLI quando o perfil nao tem como dar token.
+
+    Sem o ~/.databrickscfg nao ha o que conferir, e a CLI responde por si.
+    """
+    perfis = ler_perfis()
+    if perfis is None:
+        return
+    if perfil not in perfis:
+        existentes = ", ".join(perfis) or "nenhum"
+        raise SemCredencial(
+            f"O perfil `{perfil}` nao existe em {arquivo_databrickscfg()}. "
+            f"Perfis existentes: {existentes}.\n"
+            "Confira DATABRICKS_CONFIG_PROFILE no .env, ou crie o perfil:\n"
+            f"  {_comando_login(perfil, None)}")
+    tipo = perfis[perfil]["tipo"]
+    if tipo not in TIPOS_SSO:
+        sso = f"{perfil}-sso"
+        raise SemCredencial(
+            f"O perfil `{perfil}` usa auth_type={tipo}, e o docs precisa de "
+            "perfil de login SSO (auth_type=databricks-cli). Ele autentica a "
+            "CLI, mas nao deixa token para o docs ler.\n"
+            "Crie um perfil SSO, sem mexer neste, e aponte o .env para ele:\n"
+            f"  {_comando_login(sso, perfis[perfil]['host'])}\n"
+            f"  DATABRICKS_CONFIG_PROFILE={sso}   (no .env)")
+
 
 def token_databricks(perfil: str, timeout: int = 60) -> str:
     """Token OAuth do login SSO da CLI, renovado pela propria CLI se preciso."""
-    if shutil.which("databricks") is None:
-        raise SemCredencial(
-            "O comando `databricks` nao esta instalado.\n" + INSTRUCAO_DATABRICKS)
+    cli = cli_databricks()
+    checar_perfil(perfil)
 
     try:
         proc = subprocess.run(
-            ["databricks", "auth", "token", "--profile", perfil,
-             "--output", "json"],
+            [cli, "auth", "token", "--profile", perfil, "--output", "json"],
             capture_output=True, text=True, timeout=timeout, check=False)
     except subprocess.TimeoutExpired as exc:
         raise SemCredencial(
@@ -120,10 +243,12 @@ def token_databricks(perfil: str, timeout: int = 60) -> str:
     if proc.returncode != 0:
         erro = (proc.stderr or "").strip().splitlines()
         detalhe = erro[-1] if erro else "sem detalhe"
+        perfis = ler_perfis() or {}
+        host = perfis.get(perfil, {}).get("host")
         raise SemCredencial(
             f"A CLI do Databricks nao devolveu token: {detalhe}\n"
-            f"Normalmente e sessao expirada. Rode: "
-            f"databricks auth login --profile {perfil}")
+            "O perfil existe e e SSO, entao a sessao expirou ou o login nao "
+            f"terminou. Rode: {_comando_login(perfil, host)}")
 
     try:
         return json.loads(proc.stdout)["access_token"]

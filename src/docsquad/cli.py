@@ -6,14 +6,14 @@ Fluxo tipico de uma sprint:
     docs collect                     # snapshot de cards + commits + notebooks
     docs sprint-review               # rascunho da sua review, a partir do snapshot
     docs propose comment 2680725 --from-snapshot
-    docs review                      # lista propostas pendentes
-    docs show <id>                   # ve o texto exato que sera publicado
-    docs approve <id> --by "Leo"
-    docs apply --all                 # executor aplica so o que foi aprovado
+    docs decidir                     # humano: revisa, aprova ou recusa, e aplica
 """
 from __future__ import annotations
 
 import json
+import os
+import subprocess
+import sys
 
 import requests
 import typer
@@ -22,6 +22,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from . import collect as collect_mod
+from . import diagnostico as diag
 from . import sprint_review as review_mod
 from .config import env, path, settings
 from .connectors import (DatabricksClient, DevOpsClient, filtrar_por_pessoa,
@@ -255,6 +256,11 @@ def propose_tag(card_id: int, tag: str):
 @propose.command("notebook")
 def propose_notebook(caminho: str, arquivo: str):
     """Propoe escrita de notebook no Databricks."""
+    erro = diag.checar_caminho_escrita(
+        caminho, settings()["databricks"].get("escrita_permitida", []))
+    if erro:
+        console.print(f"[red]Proposta nao criada.[/] {erro}")
+        raise typer.Exit(1)
     content = open(arquivo, encoding="utf-8").read()
     p = Proposal(kind=ProposalKind.NOTEBOOK_WRITE, target=caminho,
                  summary=f"Escrever notebook {caminho} ({len(content)} bytes)",
@@ -282,10 +288,7 @@ def review(status: str = "pending"):
     console.print(t)
 
 
-@app.command()
-def show(pid: str):
-    """Mostra o conteudo exato que sera publicado."""
-    p = store.load(pid)
+def _mostrar(p: Proposal) -> None:
     console.print(Panel(f"[bold]{p.summary}[/]\n"
                         f"tipo: {p.kind.value}   alvo: {p.target}   status: {p.status}"))
     if p.rationale:
@@ -298,16 +301,144 @@ def show(pid: str):
 
 
 @app.command()
-def approve(pid: str, by: str = typer.Option(..., "--by", help="Quem aprova.")):
-    """Aprova uma proposta. Exige identificacao."""
-    p = store.approve(pid, by)
-    console.print(f"[green]Aprovada[/] {p.id} por {p.approved_by}. "
-                  f"Aplique com: docs apply --id {p.id}")
+def show(pid: str):
+    """Mostra o conteudo exato que sera publicado."""
+    _mostrar(store.load(pid))
+
+
+def _interativo() -> bool:
+    return sys.stdin.isatty() and sys.stdout.isatty()
+
+
+def _exigir_humano(comando: str) -> None:
+    """Aprovar e decisao humana, e so roda num terminal de verdade.
+
+    O shell de um agente de IA nao tem terminal interativo, entao esta e uma
+    barreira a mais alem do contrato. Nao e garantia absoluta: quem quiser
+    burlar consegue simular um terminal. O portao continua sendo o Executor.
+    """
+    if not _interativo():
+        console.print(f"[red]`docs {comando}` so roda num terminal interativo.[/] "
+                      "Aprovar e decisao humana: rode voce mesmo, num terminal seu.")
+        raise typer.Exit(1)
+
+
+def _recusar_sem_pessoa(comando: str) -> None:
+    """Em CI e no agente de nuvem do Copilot nao ha ninguem para clicar.
+
+    Ali a janela de permissao nao existe, entao decidir proposta nao roda.
+    """
+    if any(os.getenv(v) for v in ("CI", "GITHUB_ACTIONS")):
+        console.print(f"[red]`docs {comando}` nao roda em CI.[/] Decidir proposta "
+                      "exige uma pessoa aprovando na janela de permissao. Ver ADR-0015.")
+        raise typer.Exit(1)
+
+
+def _identidade() -> tuple[str, str]:
+    """Quem esta aprovando, e de onde veio: a conta do `az login`, ou o git."""
+    for comando, origem in [(["az", "account", "show", "--query", "user.name", "-o", "tsv"], "az login"),
+                            (["git", "config", "user.email"], "git config")]:
+        try:
+            r = subprocess.run(comando, capture_output=True, text=True, timeout=20, check=False)
+        except (OSError, subprocess.TimeoutExpired):
+            continue
+        if r.returncode == 0 and r.stdout.strip():
+            return r.stdout.strip(), origem
+    return "", ""
+
+
+def _aplicar(alvos: list[Proposal], dry_run: bool = False) -> None:
+    ex = Executor(devops=DevOpsClient(), databricks=None)
+    for p in alvos:
+        if p.kind is ProposalKind.NOTEBOOK_WRITE and ex.databricks is None:
+            ex.databricks = DatabricksClient()
+        try:
+            res = ex.apply(p, dry_run=dry_run)
+            console.print(f"  [green]OK[/] {p.id}: {res}")
+        except Exception as exc:
+            console.print(f"  [red]BLOQUEADA[/] {p.id}: {exc}")
+
+
+@app.command()
+def decidir(como: str = typer.Option(None, "--como",
+                                     help="Quem aprova. Vazio = a conta do az login.")):
+    """Percorre as propostas pendentes: aprovar, recusar ou pular, e aplicar no fim."""
+    _recusar_sem_pessoa("decidir")
+    _exigir_humano("decidir")
+    # Da mais antiga para a mais nova: e a ordem em que o trabalho aconteceu.
+    pendentes = sorted(store.list("pending"), key=lambda p: p.created_at)
+    if not pendentes:
+        console.print("Nenhuma proposta pendente.")
+        return
+
+    quem, origem = (como, "--como") if como else _identidade()
+    if not quem:
+        quem = typer.prompt("Quem esta aprovando").strip()
+        origem = "digitado"
+    console.print(f"Aprovando como [bold]{quem}[/] ({origem})")
+
+    aprovadas = []
+    for i, p in enumerate(pendentes, 1):
+        console.print(f"\n[bold][{i}/{len(pendentes)}][/] {p.kind.value}  {p.target}")
+        _mostrar(p)
+        escolha = ""
+        while escolha not in ("a", "r", "p", "s"):
+            escolha = typer.prompt("(a)provar  (r)ecusar  (p)ular  (s)air").strip().lower()[:1]
+        if escolha == "s":
+            break
+        if escolha == "a":
+            aprovadas.append(store.approve(p.id, quem))
+            console.print("  [green]aprovada[/]")
+        elif escolha == "r":
+            motivo = ""
+            while not motivo.strip():
+                motivo = typer.prompt("  motivo")
+            store.reject(p.id, motivo.strip())
+            console.print("  [red]recusada[/]")
+
+    restantes = len(store.list("pending"))
+    if restantes:
+        console.print(f"\n{restantes} pendente(s) ficaram para depois.")
+    if not aprovadas:
+        return
+    resposta = typer.prompt(f"\n{len(aprovadas)} aprovada(s). Aplicar agora? [s/N]",
+                            default="n", show_default=False)
+    if resposta.strip().lower() in ("s", "sim"):
+        _aplicar(aprovadas)
+    else:
+        console.print("Ficam em proposals/approved/. Aplique depois com: docs apply --all")
+
+
+@app.command()
+def approve(pid: str,
+            by: str = typer.Option(None, "--by", help="Quem aprova. Vazio = a conta do az login."),
+            aplicar: bool = typer.Option(False, "--aplicar", help="Aplica logo depois de aprovar.")):
+    """Aprova uma proposta, e aplica com --aplicar.
+
+    Pelo agente de IA, so roda depois que a pessoa aprova na janela de
+    permissao da ferramenta, que pergunta sempre neste comando. Ver ADR-0015.
+    """
+    _recusar_sem_pessoa("approve")
+    quem = by or _identidade()[0]
+    if not quem:
+        console.print("[red]Sem identidade.[/] Rode `az login` ou passe --by \"Seu Nome\".")
+        raise typer.Exit(1)
+    try:
+        p = store.approve(pid, quem)
+    except (FileNotFoundError, ValueError) as exc:
+        console.print(f"[red]Nao aprovada.[/] {exc}")
+        raise typer.Exit(1)
+    console.print(f"[green]Aprovada[/] {p.id} por {p.approved_by}.")
+    if aplicar:
+        _aplicar([p])
+    else:
+        console.print(f"Aplique com: docs apply --id {p.id}")
 
 
 @app.command()
 def reject(pid: str, reason: str = typer.Option(..., "--reason")):
     """Recusa uma proposta, registrando o motivo."""
+    _recusar_sem_pessoa("reject")
     store.reject(pid, reason)
     console.print(f"[red]Recusada[/] {pid}")
 
@@ -317,7 +448,7 @@ def apply(pid: str = typer.Option(None, "--id"),
           todas: bool = typer.Option(False, "--all"),
           dry_run: bool = typer.Option(False, "--dry-run")):
     """Aplica propostas aprovadas. Unico comando que escreve fora."""
-    ex = Executor(devops=DevOpsClient(), databricks=None)
+    _recusar_sem_pessoa("apply")
     alvos = [store.load(pid)] if pid else store.list("approved")
     if not alvos:
         console.print("Nada aprovado para aplicar.")
@@ -325,44 +456,79 @@ def apply(pid: str = typer.Option(None, "--id"),
     if not (pid or todas):
         console.print("Use --id <id> ou --all.")
         raise typer.Exit(1)
-    for p in alvos:
-        if p.kind is ProposalKind.NOTEBOOK_WRITE:
-            ex.databricks = DatabricksClient()
+    _aplicar(alvos, dry_run=dry_run)
+
+
+ESTILO = {diag.OK: "[green]ok[/]", diag.AVISO: "[yellow]aviso[/]", diag.FALHA: "[red]falha[/]"}
+
+
+def _pasta_databricks(cfg: dict) -> list[diag.Achado]:
+    """Credencial, login e pasta pessoal, nessa ordem: cada um depende do anterior."""
+    try:
+        cliente = DatabricksClient()
+        login = cliente.usuario()
+    except requests.HTTPError as exc:
+        status = exc.response.status_code if exc.response is not None else "?"
+        dica = (" A requisicao chegou sem credencial aceita: confira DATABRICKS_HOST "
+                "acima." if status == 401 else "")
+        return [diag.Achado(diag.FALHA, "Databricks", f"HTTP {status} ao ler o login.{dica}")]
+    except Exception as exc:
+        return [diag.Achado(diag.FALHA, "Databricks", str(exc))]
+
+    achados = [diag.Achado(diag.OK, "Databricks", f"{cliente.metodo_auth}, login {login}")]
+    for bruto in cfg["databricks"]["paths"]:
+        caminho = cliente.resolver(bruto)
         try:
-            res = ex.apply(p, dry_run=dry_run)
-            console.print(f"[green]OK[/] {p.id}: {res}")
-        except Exception as exc:
-            console.print(f"[red]BLOQUEADA[/] {p.id}: {exc}")
+            cliente.list_path(bruto)
+            achados.append(diag.Achado(diag.OK, "pasta", caminho))
+        except requests.HTTPError as exc:
+            if exc.response is None or exc.response.status_code != 404:
+                achados.append(diag.Achado(diag.FALHA, "pasta", f"{caminho}: {exc}"))
+            elif "{usuario}" not in bruto:
+                achados.append(diag.Achado(
+                    diag.FALHA, "pasta",
+                    f"{caminho} nao existe, e o caminho fixo e de config antiga. "
+                    "Rode `git pull`."))
+            else:
+                achados.append(diag.Achado(
+                    diag.FALHA, "pasta",
+                    f"{caminho} nao existe. Rode scripts/preparar_ambiente.sh, que "
+                    "cria, ou crie pela interface do Databricks."))
+    return achados
 
 
 @app.command()
 def config_check():
-    """Verifica credenciais e politica sem escrever nada."""
+    """Diagnostica credenciais, CLIs, perfil e repo, sem escrever nada.
+
+    A saida e feita para ser colada inteira num pedido de ajuda. Sai com
+    codigo 1 se algum item falhar.
+    """
     cfg = settings()
     console.print(Panel(json.dumps(cfg["gate"], indent=2), title="Politica do portao"))
 
+    achados = diag.checar_repo() + diag.checar_env_file()
     try:
-        console.print(f"autenticacao: [bold]{DevOpsClient().metodo_auth}[/]")
+        devops = DevOpsClient()
+        devops.current_iteration()
+        achados.append(diag.Achado(diag.OK, "Azure DevOps", devops.metodo_auth))
     except Exception as exc:
-        console.print(f"[red]sem credencial[/]\n{exc}")
-        raise typer.Exit(1)
+        achados.append(diag.Achado(diag.FALHA, "Azure DevOps", str(exc)))
 
-    for nome, fn in [("Azure DevOps", lambda: DevOpsClient().current_iteration()),
-                     ("Databricks", lambda: DatabricksClient().list_path(
-                         cfg["databricks"]["paths"][0]))]:
-        try:
-            fn()
-            console.print(f"[green]ok[/] {nome}")
-        except requests.HTTPError as exc:
-            if exc.response is not None and exc.response.status_code == 404:
-                console.print(
-                    f"[yellow]autenticado, mas caminho inexistente[/] {nome}: "
-                    f"{exc.request.url if exc.request else exc}\n"
-                    "  Confira os caminhos em config/settings.yaml.")
-            else:
-                console.print(f"[red]falha[/] {nome}: {exc}")
-        except Exception as exc:
-            console.print(f"[red]falha[/] {nome}: {exc}")
+    nome, origem, no_terminal, host = diag.contexto_perfil()
+    achados += diag.checar_clis()
+    achados += diag.checar_host(host)
+    achados += diag.checar_perfil(nome, origem, no_terminal,
+                                  diag.auth.ler_perfis(), host)
+    # Sem perfil utilizavel, a chamada ao workspace so repetiria a falha.
+    if not any(a.nivel == diag.FALHA for a in achados
+               if a.assunto in ("perfil", "DATABRICKS_HOST", "CLI do Databricks")):
+        achados += _pasta_databricks(cfg)
+
+    for a in achados:
+        console.print(f"{ESTILO[a.nivel]} [bold]{a.assunto}[/]: {a.texto}", highlight=False)
+    if any(a.nivel == diag.FALHA for a in achados):
+        raise typer.Exit(1)
 
 
 if __name__ == "__main__":

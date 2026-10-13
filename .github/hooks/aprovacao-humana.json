@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "type": "command",
+        "bash": "python3 \"$(git rev-parse --show-toplevel)/scripts/hooks/exigir_aprovacao.py\"",
+        "powershell": "python \"$(git rev-parse --show-toplevel)/scripts/hooks/exigir_aprovacao.py\"",
+        "timeoutSec": 15
+      }
+    ]
+  }
+}

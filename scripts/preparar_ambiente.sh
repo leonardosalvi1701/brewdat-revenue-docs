@@ -9,7 +9,12 @@
 #   5. exige um perfil SSO do Databricks definido em DATABRICKS_CONFIG_PROFILE
 #      no .env, faz o login nele se preciso e cria a sua pasta revenue-docs
 #      no workspace, se ela ainda nao existir;
-#   6. roda `docs config-check`.
+#   6. roda `docs config-check`, que sai com erro se algum item falhar.
+#
+# Tambem corrige o que travou gente da squad em 08/10/2026: remove a CLI
+# legada do Databricks (pacote `databricks-cli` do pip) do .venv, tira o fim
+# de linha do Windows do .env, troca para um perfil SSO quando o perfil do
+# .env e de outro tipo, e avisa quando o repo esta atras do GitHub.
 #
 # Uso:
 #   scripts/preparar_ambiente.sh                  # caminho normal
@@ -88,6 +93,18 @@ open(caminho, "w", encoding="utf-8").write(texto)
 EOF
 }
 
+MUDOU_CLI=0
+
+# A CLI legada do Databricks e script Python; a nova e binario.
+cli_legada() { head -n1 "$1" 2>/dev/null | grep -q '^#!.*python'; }
+databricks_nova() {
+  local c
+  while IFS= read -r c; do
+    cli_legada "$c" || { echo "$c"; return 0; }
+  done < <(type -ap databricks)
+  return 1
+}
+
 # ---------- 1. Python ----------
 passo "Python e dependencias"
 PY=""
@@ -109,9 +126,41 @@ PY="$RAIZ/.venv/bin/python"
 "$PY" -m pip install --quiet -r "$RAIZ/requirements.txt"
 ok "requirements.txt instalado em .venv"
 
+# Instalada a mao em algum momento, ela entra no PATH na frente da nova sempre
+# que o .venv esta ativo, e repassa cada comando com aviso no meio da saida.
+if "$PY" -m pip show databricks-cli >/dev/null 2>&1; then
+  aviso "CLI legada do Databricks (pacote databricks-cli) no .venv, removendo"
+  "$PY" -m pip uninstall --quiet -y databricks-cli
+  hash -r
+  MUDOU_CLI=1
+fi
+
 if [[ ! -f "$ENV_FILE" ]]; then
   cp "$RAIZ/.env.example" "$ENV_FILE"
   ok ".env criado a partir do .env.example"
+fi
+# .env editado no Windows deixa \r no fim de cada valor, e o perfil
+# "revenue\r" nao existe.
+if grep -q $'\r' "$ENV_FILE"; then
+  "$PY" - "$ENV_FILE" <<'EOF'
+import sys
+caminho = sys.argv[1]
+dados = open(caminho, "rb").read().replace(b"\r\n", b"\n")
+open(caminho, "wb").write(dados)
+EOF
+  ok "fim de linha do Windows removido do .env"
+fi
+
+# Repo atrasado le config antiga, e o erro aparece la na frente, como pasta
+# inexistente. So avisa: puxar e decisao de quem tem alteracao local.
+if git -C "$RAIZ" rev-parse --abbrev-ref '@{u}' >/dev/null 2>&1; then
+  if GIT_TERMINAL_PROMPT=0 timeout 20 git -C "$RAIZ" fetch --quiet 2>/dev/null; then
+    ATRAS="$(git -C "$RAIZ" rev-list --count 'HEAD..@{u}')"
+    [[ "$ATRAS" == "0" ]] && ok "repo em dia com o GitHub" \
+      || aviso "repo $ATRAS commit(s) atras do GitHub. Rode: git pull"
+  else
+    aviso "nao consegui consultar o GitHub para conferir se o repo esta em dia"
+  fi
 fi
 
 # ---------- 2. Azure CLI ----------
@@ -183,28 +232,41 @@ if [[ $SEM_DATABRICKS -eq 0 ]]; then
   atualizar_databricks() {
     if [[ "$SO" == "Darwin" ]] && tem_brew; then
       brew upgrade databricks
-    elif [[ "$(command -v databricks)" == "/usr/local/bin/databricks" ]]; then
+    elif [[ "$DBX" == "/usr/local/bin/databricks" ]]; then
       # O instalador oficial recusa sobrescrever; a atualizacao e remover e
       # instalar de novo, no mesmo caminho.
       sudo rm -f /usr/local/bin/databricks
       instalar_databricks
     else
-      falha "databricks em $(command -v databricks), fora do caminho padrao. Atualize pelo gerenciador que o instalou."
+      falha "databricks em $DBX, fora do caminho padrao. Atualize pelo gerenciador que o instalou."
     fi
   }
 
-  if ! command -v databricks >/dev/null 2>&1; then
-    aviso "databricks nao encontrado, instalando"
+  # Daqui em diante toda chamada usa o caminho da CLI nova, e nao `databricks`
+  # solto, que pode resolver para uma legada fora do .venv.
+  if ! DBX="$(databricks_nova)"; then
+    aviso "CLI nova do Databricks nao encontrada, instalando"
     instalar_databricks
+    hash -r
+    MUDOU_CLI=1
+    DBX="$(databricks_nova)" || falha "Instalei a CLI do Databricks e ela nao aparece no PATH."
   fi
-  DBX_VER="$(databricks -v 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1 || echo 0)"
+  DBX_VER="$("$DBX" -v 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1 || echo 0)"
   if [[ $ATUALIZAR -eq 1 ]] || ! versao_ok "$DBX_VER" "$DATABRICKS_MIN"; then
     aviso "atualizando databricks $DBX_VER"
     atualizar_databricks
-    DBX_VER="$(databricks -v | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1)"
+    hash -r
+    MUDOU_CLI=1
+    DBX="$(databricks_nova)"
+    DBX_VER="$("$DBX" -v | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1)"
   fi
   versao_ok "$DBX_VER" "$DATABRICKS_MIN" || falha "databricks $DBX_VER continua abaixo de $DATABRICKS_MIN."
-  ok "databricks $DBX_VER"
+  ok "databricks $DBX_VER ($DBX)"
+  while IFS= read -r c; do
+    if cli_legada "$c"; then
+      aviso "CLI legada do Databricks em $c. Remova com pip uninstall databricks-cli no ambiente dela."
+    fi
+  done < <(type -ap databricks)
 
   # ---------- 5. perfil SSO (obrigatorio) ----------
   passo "Perfil SSO do Databricks (obrigatorio)"
@@ -216,34 +278,66 @@ if [[ $SEM_DATABRICKS -eq 0 ]]; then
     read -r -p "    Nome do perfil do Databricks [$PERFIL_PADRAO]: " PERFIL
     PERFIL="${PERFIL:-$PERFIL_PADRAO}"
   fi
+
+  # O terminal da extensao do Databricks no VS Code exporta o perfil dela.
+  # O docs usa o do .env, mas a CLI chamada a mao naquele terminal nao.
+  if [[ -n "${DATABRICKS_CONFIG_PROFILE:-}" && "$DATABRICKS_CONFIG_PROFILE" != "$PERFIL" ]]; then
+    aviso "este terminal exporta DATABRICKS_CONFIG_PROFILE=$DATABRICKS_CONFIG_PROFILE"
+    aviso "o docs usa $PERFIL, do .env. Para a CLI usar o mesmo: unset DATABRICKS_CONFIG_PROFILE"
+  fi
+
+  # Tipo e host do perfil, lidos pelo mesmo codigo que o docs usa. Perfil de
+  # outro tipo (azure-cli, PAT) aparece como valido na CLI e nao da token ao
+  # docs; nao se mexe nele, cria-se outro, SSO, ao lado.
+  perfil_info() {
+    "$PY" - "$1" <<'EOF'
+import sys
+from docsquad.auth import ler_perfis
+p = (ler_perfis() or {}).get(sys.argv[1])
+print(f"{p['tipo']} {p['host']}" if p else "ausente -")
+EOF
+  }
+  read -r TIPO HOST_PERFIL < <(perfil_info "$PERFIL")
+  if [[ "$TIPO" != "ausente" && "$TIPO" != "databricks-cli" && "$TIPO" != "desconhecido" ]]; then
+    aviso "o perfil $PERFIL usa auth_type=$TIPO, e o docs precisa de login SSO"
+    PERFIL="$PERFIL-sso"
+    aviso "usando o perfil $PERFIL, sem mexer no anterior"
+    read -r TIPO HOST_PERFIL < <(perfil_info "$PERFIL")
+  fi
+  if [[ "$TIPO" != "ausente" && "${HOST_PERFIL%/}" != "${HOST%/}" ]]; then
+    falha "O perfil $PERFIL aponta para $HOST_PERFIL, e o workspace da squad e $HOST. Escolha outro nome: --perfil <nome>"
+  fi
   env_set DATABRICKS_CONFIG_PROFILE "$PERFIL"
   ok "DATABRICKS_CONFIG_PROFILE=$PERFIL no .env"
 
   # `auth token` so responde com sessao valida. A saida vai para o lixo porque
   # contem o token.
-  if ! databricks auth token --profile "$PERFIL" >/dev/null 2>&1; then
+  if ! "$DBX" auth token --profile "$PERFIL" >/dev/null 2>&1; then
     aviso "sem sessao valida no perfil $PERFIL, abrindo o login SSO"
     aviso "se o navegador nao abrir, copie a URL que aparecer para o navegador do Windows"
-    databricks auth login --host "$HOST" --profile "$PERFIL"
+    "$DBX" auth login --host "$HOST" --profile "$PERFIL"
   fi
-  databricks auth token --profile "$PERFIL" >/dev/null 2>&1 \
+  "$DBX" auth token --profile "$PERFIL" >/dev/null 2>&1 \
     || falha "Login no perfil $PERFIL nao concluiu. Rode: databricks auth login --host $HOST --profile $PERFIL"
   ok "perfil $PERFIL autenticado em $HOST"
 
   # Pasta do produto, lida pelo inventario e unica onde proposta aprovada
   # escreve notebook. Espelha databricks.paths em config/settings.yaml.
-  LOGIN="$(databricks current-user me --profile "$PERFIL" -o json | "$PY" -c 'import json,sys; print(json.load(sys.stdin)["userName"])')"
+  LOGIN="$("$DBX" current-user me --profile "$PERFIL" -o json | "$PY" -c 'import json,sys; print(json.load(sys.stdin)["userName"])')"
   PASTA="/Workspace/Users/$LOGIN/$PASTA_PRODUTO"
-  if databricks workspace get-status "$PASTA" --profile "$PERFIL" >/dev/null 2>&1; then
+  if "$DBX" workspace get-status "$PASTA" --profile "$PERFIL" >/dev/null 2>&1; then
     ok "pasta $PASTA ja existe"
   else
-    databricks workspace mkdirs "$PASTA" --profile "$PERFIL"
+    "$DBX" workspace mkdirs "$PASTA" --profile "$PERFIL"
     ok "pasta $PASTA criada"
   fi
 fi
 
 # ---------- 6. conferencia ----------
 passo "Conferencia final"
-docs config-check
+docs config-check || falha "A conferencia achou problema. Corrija o item marcado como falha acima e rode o script de novo."
 
 printf '\n\033[32mAmbiente pronto.\033[0m Em cada terminal novo: source .venv/bin/activate\n'
+if [[ $MUDOU_CLI -eq 1 ]]; then
+  printf 'Uma CLI foi instalada ou removida: nos terminais ja abertos, rode hash -r ou abra um novo.\n'
+fi

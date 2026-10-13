@@ -15,7 +15,7 @@ from functools import lru_cache
 from pathlib import Path
 
 import yaml
-from dotenv import load_dotenv
+from dotenv import dotenv_values, load_dotenv
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -47,6 +47,24 @@ def env(key: str, required: bool = True) -> str:
             f"Variavel {key} ausente. Copie .env.example para .env e preencha."
         )
     return value
+
+
+def perfil_databricks() -> tuple[str, str]:
+    """Nome do perfil do Databricks e de onde ele veio: `.env` ou `terminal`.
+
+    Aqui o `.env` ganha do terminal, ao contrario das demais variaveis. O
+    terminal integrado da extensao do Databricks no VS Code exporta
+    DATABRICKS_CONFIG_PROFILE com o perfil dela, e esse valor passava na frente
+    do `.env` sem aviso. O terminal so vale quando o `.env` esta em branco, que
+    e o caso de execucao automatizada.
+    """
+    do_arquivo = (dotenv_values(ROOT / ".env").get("DATABRICKS_CONFIG_PROFILE") or "").strip()
+    if do_arquivo:
+        return do_arquivo, ".env"
+    do_terminal = os.getenv("DATABRICKS_CONFIG_PROFILE", "").strip()
+    if do_terminal:
+        return do_terminal, "terminal"
+    return "", ""
 
 
 def path(*parts: str) -> Path:
