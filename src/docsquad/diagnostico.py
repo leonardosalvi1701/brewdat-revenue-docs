@@ -12,13 +12,13 @@ from __future__ import annotations
 import os
 import posixpath
 import re
+import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlparse
 
-from dotenv import dotenv_values
-
+import requests
 from . import auth
 from .config import ROOT, perfil_databricks
 
@@ -30,6 +30,76 @@ class Achado:
     nivel: str
     assunto: str
     texto: str
+
+
+def comparar_identidade(assunto: str, esperado: str,
+                        observado: str) -> Achado:
+    if observado.strip().casefold() == esperado.strip().casefold():
+        return Achado(OK, assunto, f"{observado} (conforme config/settings.yaml)")
+    if not observado.strip():
+        return Achado(FALHA, assunto,
+                      f"nao consegui ler a identidade autenticada; esperado {esperado}.")
+    return Achado(FALHA, assunto,
+                  f"autenticado como {observado}, mas config/settings.yaml espera {esperado}.")
+
+
+def checar_identidades_locais(cfg: dict) -> list[Achado]:
+    """Confere a conta Azure e o email de commit contra a identidade declarada."""
+    usuarios = cfg.get("usuarios", {})
+    achados = []
+    try:
+        r = subprocess.run(["az", "account", "show", "--query", "user.name", "-o", "tsv"],
+                           capture_output=True, text=True, timeout=20, check=False)
+        atual = r.stdout.strip() if r.returncode == 0 else ""
+    except (OSError, subprocess.TimeoutExpired):
+        atual = ""
+    achados.append(comparar_identidade("Azure", usuarios.get("azure", ""), atual))
+
+    email_git = subprocess.run(["git", "-C", str(ROOT), "config", "--local", "user.email"],
+                               capture_output=True, text=True, timeout=20, check=False)
+    atual_git = email_git.stdout.strip() if email_git.returncode == 0 else ""
+    achados.append(comparar_identidade("Git", usuarios.get("git_email", ""), atual_git))
+    return achados
+
+
+def checar_identidade_github(cfg: dict) -> list[Achado]:
+    """Confere os logins da CLI e do token GitHub usado pelo conector."""
+    esperado = cfg.get("usuarios", {}).get("github", "")
+    achados: list[Achado] = []
+
+    gh = shutil.which("gh")
+    if gh:
+        status = subprocess.run([gh, "auth", "status", "--hostname", "github.com"],
+                                capture_output=True, text=True, timeout=20,
+                                check=False)
+        if status.returncode == 0:
+            r = subprocess.run([gh, "api", "user", "--jq", ".login"],
+                               capture_output=True, text=True, timeout=20,
+                               check=False)
+            achados.append(comparar_identidade(
+                "GitHub CLI", esperado, r.stdout.strip() if r.returncode == 0 else ""))
+        else:
+            achados.append(Achado(AVISO, "GitHub CLI",
+                                  "sem sessao ativa; use gh auth login --web se precisar do gh."))
+
+    token = os.getenv("GITHUB_TOKEN", "").strip()
+    if not token:
+        achados.append(Achado(AVISO, "GitHub API",
+                              "GITHUB_TOKEN nao configurado; evidencia GitHub continua opcional."))
+        return achados
+    try:
+        r = requests.get("https://api.github.com/user",
+                         headers={"Authorization": f"Bearer {token}",
+                                  "Accept": "application/vnd.github+json"},
+                         timeout=20)
+        r.raise_for_status()
+        atual = r.json().get("login", "")
+    except Exception as exc:
+        achados.append(Achado(FALHA, "GitHub API",
+                              f"nao consegui confirmar a conta do token: {exc}"))
+        return achados
+    achados.append(comparar_identidade("GitHub API", esperado, atual))
+    return achados
 
 
 # ---------- CLI do Databricks ----------
@@ -94,14 +164,14 @@ def checar_perfil(nome: str, origem: str, no_terminal: str,
     if no_terminal and no_terminal != nome:
         achados.append(Achado(
             AVISO, "perfil",
-            f"o terminal exporta DATABRICKS_CONFIG_PROFILE={no_terminal}. O docs "
-            f"usa o do {origem or '.env'}, mas a CLI chamada a mao neste terminal "
-            "usa o do terminal. Rode `unset DATABRICKS_CONFIG_PROFILE` ou abra "
-            "um terminal comum, fora da extensao do Databricks."))
+            f"o terminal exporta DATABRICKS_CONFIG_PROFILE={no_terminal}, mas o "
+            f"docs usa databricks.perfil={nome} de {origem}. Comandos da CLI "
+            "chamados sem `--profile` podem usar o perfil exportado; remova a "
+            "variavel com `unset DATABRICKS_CONFIG_PROFILE`."))
     if not nome:
         achados.append(Achado(FALHA, "perfil",
-                              "DATABRICKS_CONFIG_PROFILE em branco no .env. "
-                              "Rode scripts/preparar_ambiente.sh."))
+                              "databricks.perfil em branco em config/settings.yaml. "
+                              "Defina o nome do perfil e rode scripts/preparar_ambiente.sh."))
         return achados
     if perfis is None:
         achados.append(Achado(FALHA, "perfil",
@@ -119,7 +189,8 @@ def checar_perfil(nome: str, origem: str, no_terminal: str,
         achados.append(Achado(
             FALHA, "perfil",
             f"`{nome}` usa auth_type={p['tipo']}, e o docs precisa de login SSO. "
-            f"Rode scripts/preparar_ambiente.sh --perfil {nome}-sso."))
+            "Defina outro nome em databricks.perfil no settings.yaml e rode "
+            "scripts/preparar_ambiente.sh."))
         return achados
     if host and _host_normal(p["host"]) != _host_normal(host):
         achados.append(Achado(
@@ -187,11 +258,8 @@ def checar_env_file(caminho: Path | None = None) -> list[Achado]:
 def contexto_perfil() -> tuple[str, str, str, str]:
     """Perfil em uso, origem, valor exportado no terminal, e DATABRICKS_HOST."""
     nome, origem = perfil_databricks()
-    do_arquivo = dotenv_values(ROOT / ".env")
-    # O load_dotenv nao sobrescreve o terminal: se o valor do ambiente difere
-    # do .env, ele veio do terminal.
     no_ambiente = os.getenv("DATABRICKS_CONFIG_PROFILE", "").strip()
-    no_terminal = no_ambiente if no_ambiente != (do_arquivo.get("DATABRICKS_CONFIG_PROFILE") or "").strip() else ""
+    no_terminal = no_ambiente if no_ambiente != nome else ""
     # O host e o que o cliente vai usar de fato, venha de onde vier.
     host = os.getenv("DATABRICKS_HOST", "").strip()
     return nome, origem, no_terminal, host

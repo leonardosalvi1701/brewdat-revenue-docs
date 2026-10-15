@@ -24,13 +24,16 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from .config import settings
+
 # Id de recurso do Azure DevOps no Entra ID. E publico e igual em qualquer
 # tenant, e nao um identificador da Ambev.
 RECURSO_DEVOPS = "499b84ac-1321-427f-aa17-267ca6975798"
 
 INSTRUCAO = (
     "Autentique com uma das duas opcoes:\n"
-    "  1. az login    (recomendado, nao exige segredo no .env)\n"
+    "  1. rode scripts/preparar_ambiente.sh; ele usa usuarios.azure de "
+    "config/settings.yaml para conferir a conta apos o login interativo\n"
     "  2. preencha AZDO_PAT no .env, com permissao de leitura de Work Items"
 )
 
@@ -50,6 +53,18 @@ def token_entra(timeout: int = 60) -> str:
             "O comando `az` nao esta instalado, e nenhum AZDO_PAT foi definido.\n"
             + INSTRUCAO)
 
+    esperado = settings().get("usuarios", {}).get("azure", "").strip()
+    if esperado:
+        identidade = subprocess.run(
+            ["az", "account", "show", "--query", "user.name", "-o", "tsv"],
+            capture_output=True, text=True, timeout=timeout, check=False)
+        atual = identidade.stdout.strip() if identidade.returncode == 0 else ""
+        if atual.casefold() != esperado.casefold():
+            raise SemCredencial(
+                f"Azure autenticado como '{atual or 'desconhecido'}', mas "
+                f"config/settings.yaml espera '{esperado}'. Rode "
+                "scripts/preparar_ambiente.sh e escolha a conta configurada.")
+
     try:
         proc = subprocess.run(
             ["az", "account", "get-access-token", "--resource", RECURSO_DEVOPS,
@@ -65,7 +80,8 @@ def token_entra(timeout: int = 60) -> str:
         detalhe = erro[-1] if erro else "sem detalhe"
         raise SemCredencial(
             f"O `az` nao devolveu token: {detalhe}\n"
-            "Normalmente e sessao expirada. Rode: az login")
+            "Normalmente e sessao expirada ou de outra conta. Rode "
+            "scripts/preparar_ambiente.sh para autenticar com usuarios.azure.")
 
     try:
         return json.loads(proc.stdout)["accessToken"]
@@ -96,12 +112,15 @@ def cabecalho(pat: str | None) -> tuple[dict, str]:
 # execucao automatizada com credencial de servico. Nao e para uso pessoal, e
 # por isso nao aparece no .env.example nem nas mensagens.
 
-INSTRUCAO_DATABRICKS = (
-    "Autentique no Databricks pelo login SSO:\n"
-    "  1. databricks auth login --host <DATABRICKS_HOST> --profile <nome>\n"
-    "  2. preencha DATABRICKS_CONFIG_PROFILE=<nome> no .env\n"
-    "Ou rode scripts/preparar_ambiente.sh, que faz os dois."
-)
+def instrucao_databricks() -> str:
+    esperado = settings().get("usuarios", {}).get("databricks", "")
+    return (
+        "Autentique no Databricks pelo login SSO. A CLI nao aceita usuario no "
+        "comando de login; escolha no navegador a conta configurada em "
+        f"usuarios.databricks ({esperado}) e o script confirma o login.\n"
+        "Rode scripts/preparar_ambiente.sh para usar databricks.perfil e o host "
+        "definidos na configuracao."
+    )
 
 # `auth token` so le o cache do login SSO. Perfil de outro tipo autentica a
 # CLI normalmente, aparece como valido em `databricks auth profiles`, e mesmo
@@ -182,7 +201,7 @@ def cli_databricks() -> str:
     primeira = shutil.which("databricks")
     if primeira is None:
         raise SemCredencial(
-            "O comando `databricks` nao esta instalado.\n" + INSTRUCAO_DATABRICKS)
+            "O comando `databricks` nao esta instalado.\n" + instrucao_databricks())
     if not cli_legada(primeira):
         return primeira
     for caminho in clis_databricks():
@@ -212,18 +231,16 @@ def checar_perfil(perfil: str) -> None:
         raise SemCredencial(
             f"O perfil `{perfil}` nao existe em {arquivo_databrickscfg()}. "
             f"Perfis existentes: {existentes}.\n"
-            "Confira DATABRICKS_CONFIG_PROFILE no .env, ou crie o perfil:\n"
+            "Confira databricks.perfil em config/settings.yaml, ou crie o perfil:\n"
             f"  {_comando_login(perfil, None)}")
     tipo = perfis[perfil]["tipo"]
     if tipo not in TIPOS_SSO:
-        sso = f"{perfil}-sso"
         raise SemCredencial(
             f"O perfil `{perfil}` usa auth_type={tipo}, e o docs precisa de "
             "perfil de login SSO (auth_type=databricks-cli). Ele autentica a "
             "CLI, mas nao deixa token para o docs ler.\n"
-            "Crie um perfil SSO, sem mexer neste, e aponte o .env para ele:\n"
-            f"  {_comando_login(sso, perfis[perfil]['host'])}\n"
-            f"  DATABRICKS_CONFIG_PROFILE={sso}   (no .env)")
+            "Altere databricks.perfil em config/settings.yaml para um nome de "
+            "perfil SSO e rode scripts/preparar_ambiente.sh.")
 
 
 def token_databricks(perfil: str, timeout: int = 60) -> str:
@@ -266,5 +283,5 @@ def cabecalho_databricks(token: str | None, perfil: str | None) -> tuple[dict, s
         return ({"Authorization": f"Bearer {token_databricks(perfil)}"},
                 f"SSO (perfil {perfil})")
     raise SemCredencial(
-        "DATABRICKS_CONFIG_PROFILE nao esta definido.\n"
-        + INSTRUCAO_DATABRICKS)
+        "databricks.perfil nao esta definido em config/settings.yaml.\n"
+        + instrucao_databricks())

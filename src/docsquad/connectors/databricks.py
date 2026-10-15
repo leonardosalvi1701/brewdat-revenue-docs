@@ -23,6 +23,14 @@ class DatabricksClient:
         header, self.metodo_auth = cabecalho_databricks(token, perfil)
         self.s = requests.Session()
         self.s.headers.update(header)
+        esperado = settings().get("usuarios", {}).get("databricks", "").strip()
+        if esperado:
+            atual = self.usuario().strip()
+            if atual.casefold() != esperado.casefold():
+                raise RuntimeError(
+                    f"Databricks autenticado como '{atual or 'desconhecido'}', "
+                    f"mas config/settings.yaml espera '{esperado}'. Refaça o "
+                    "login SSO com a conta configurada.")
 
     def _get(self, endpoint: str, **params):
         r = self.s.get(f"{self.host}{endpoint}", params=params, timeout=120)

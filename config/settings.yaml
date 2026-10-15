@@ -18,6 +18,16 @@ squad:
   nome: Revenue
   produto: Revenue Docs
 
+# Identificadores pessoais para conferir a conta usada em cada ferramenta.
+# Preencha no seu clone antes de rodar scripts/preparar_ambiente.sh.
+# Estes valores nao sao segredos; nao inclua tokens, senhas ou chaves aqui.
+usuarios:
+  azure: "PREENCHER_EMAIL_DA_CONTA_AZURE" # exemplo: leonardo.salvi@ambevtech.com.br
+  databricks: "PREENCHER_EMAIL_DO_USUARIO_DATABRICKS" # exemplo: leonardo.salvi@ambevtech.com.br
+  github: "PREENCHER_LOGIN_DO_GITHUB" # exemplo: leonardosalvi1701
+  devops_email: "PREENCHER_EMAIL_DO_AZURE_DEVOPS" # exemplo: leonardo.salvi@ambevtech.com.br
+  git_email: "PREENCHER_EMAIL_DO_GIT" # exemplo: leonardo.salvi@ambevtech.com.br
+
 devops:
   # Onde o board vive. Nao e segredo: sai da url do board e e igual para toda a
   # squad, entao mora aqui e nao no .env de cada um. As variaveis de ambiente
@@ -79,6 +89,9 @@ github:
   janela_dias: 14
 
 databricks:
+  # Nome unico do perfil SSO em ~/.databrickscfg. O setup cria ou autentica
+  # exatamente este perfil; todo o codigo usa este valor como fonte de verdade.
+  perfil: revenue
   # Cada pessoa tem a propria pasta revenue-docs dentro da sua area no
   # workspace, e nao existe caminho compartilhado: {usuario} e trocado, na
   # hora, pelo login de quem esta autenticado.
