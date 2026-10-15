@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import base64
+import posixpath
 from typing import Iterator
 
 import requests
@@ -100,6 +101,10 @@ class DatabricksClient:
 
     def import_notebook(self, path: str, content: str, language: str = "PYTHON",
                         overwrite: bool = False) -> dict:
+        # A API de import nao cria os diretorios pais. mkdirs e idempotente e
+        # cria a hierarquia necessaria quando ela ainda nao existe.
+        self._post("/api/2.0/workspace/mkdirs",
+                   {"path": posixpath.dirname(path)})
         body = {
             "path": path,
             "format": "SOURCE",
