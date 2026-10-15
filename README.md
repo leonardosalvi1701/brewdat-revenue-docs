@@ -509,7 +509,9 @@ ADR-0010, que registra tambem as duas excecoes, o DoR e o portao de
 `Waiting-QA`.
 
 O padrao 5 foi extraido do notebook 30, do repositorio de modelagem, e a voz
-esta em `contracts/estilo-notebook.md`. Ver ADR-0014.
+esta em `contracts/estilo-notebook.md`. A documentacao apresenta o contexto e
+os conceitos, descreve metodologia e variaveis, contextualiza cada secao,
+interpreta as saidas e fecha com uma sintese. Ver ADR-0014.
 
 ---
 
