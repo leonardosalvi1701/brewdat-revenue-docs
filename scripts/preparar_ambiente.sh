@@ -2,7 +2,9 @@
 # Prepara o ambiente do docsquad do zero, e pode ser rodado de novo sem estrago.
 #
 # O que faz, nesta ordem:
-#   1. confere o Python e instala requirements.txt num .venv;
+#   0. cria config/usuarios.local.yaml a partir do modelo, se nao existir, e
+#      para ate os cinco identificadores pessoais estarem preenchidos;
+#   1. exige Python 3.12.x e instala requirements.txt num .venv;
 #   2. instala o Azure CLI, ou atualiza se estiver abaixo da versao minima;
 #   3. exige `az login`. Sem sessao valida no Azure, o script para aqui;
 #   4. instala ou atualiza a CLI do Databricks;
@@ -36,7 +38,7 @@
 set -euo pipefail
 
 # ---------- requisitos minimos ----------
-PYTHON_MIN="3.10"
+PYTHON_SERIE="3.12"   # pyproject.toml: requires-python = "==3.12.*"
 AZ_MIN="2.60.0"
 DATABRICKS_MIN="1.0.0"
 DATABRICKS_HOST_PADRAO="https://adb-1820723078635205.5.azuredatabricks.net"
@@ -45,6 +47,8 @@ PASTA_PRODUTO="revenue-docs"
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="$RAIZ/.env"
 SETTINGS_FILE="$RAIZ/config/settings.yaml"
+USUARIOS_FILE="$RAIZ/config/usuarios.local.yaml"
+USUARIOS_EXEMPLO="$RAIZ/config/usuarios.example.yaml"
 
 ATUALIZAR=0
 SEM_DATABRICKS=0
@@ -72,22 +76,45 @@ falha() { printf '\n\033[31mERRO:\033[0m %s\n' "$*" >&2; exit 1; }
 
 # A configuracao pessoal e validada antes de instalar pacotes ou iniciar
 # logins. A leitura simples evita depender de PyYAML antes da criacao do .venv.
-ler_config() {
-  local secao="$1" campo="$2"
-  sed -n "/^${secao}:[[:space:]]*$/,/^[^[:space:]#]/p" "$SETTINGS_FILE" \
+ler_secao() {
+  local arquivo="$1" secao="$2" campo="$3"
+  [[ -f "$arquivo" ]] || return 0
+  sed -n "/^${secao}:[[:space:]]*$/,/^[^[:space:]#]/p" "$arquivo" \
     | sed -nE "s/^[[:space:]]+${campo}:[[:space:]]*[\"']?([^\"'#]+)[\"']?[[:space:]]*(#.*)?$/\1/p" \
     | head -n1 | xargs
 }
-ler_usuario() { ler_config usuarios "$1"; }
+ler_config() { ler_secao "$SETTINGS_FILE" "$1" "$2"; }
+ler_usuario() { ler_secao "$USUARIOS_FILE" usuarios "$1"; }
+preenchido() { case "$1" in ""|PREENCHER*|\<*\>) return 1 ;; esac; }
+
+CAMPOS_USUARIO=(azure databricks github devops_email git_email)
 
 passo "Identificacao pessoal"
-for campo in azure databricks github devops_email git_email; do
-  valor="$(ler_usuario "$campo")"
-  case "$valor" in
-    ""|PREENCHER*|\<*\>)
-      falha "Preencha usuarios.$campo em config/settings.yaml antes de preparar o ambiente."
-      ;;
-  esac
+if [[ ! -f "$USUARIOS_FILE" ]]; then
+  # Clone antigo: a identidade ficava em usuarios no settings.yaml, que e
+  # versionado. Se ela estiver preenchida la, vira o arquivo local.
+  legado=1
+  for campo in "${CAMPOS_USUARIO[@]}"; do
+    preenchido "$(ler_secao "$SETTINGS_FILE" usuarios "$campo")" || legado=0
+  done
+  if [[ "$legado" == "1" ]]; then
+    {
+      echo "# Identificadores pessoais, fora do git. Modelo: config/usuarios.example.yaml."
+      echo "usuarios:"
+      for campo in "${CAMPOS_USUARIO[@]}"; do
+        echo "  $campo: \"$(ler_secao "$SETTINGS_FILE" usuarios "$campo")\""
+      done
+    } > "$USUARIOS_FILE"
+    ok "identidade copiada de config/settings.yaml para config/usuarios.local.yaml"
+    aviso "descarte seus dados do settings.yaml, que e versionado: git checkout config/settings.yaml"
+  else
+    cp "$USUARIOS_EXEMPLO" "$USUARIOS_FILE"
+    falha "Criei config/usuarios.local.yaml a partir do modelo. Preencha os cinco PREENCHER_... com os seus dados e rode o script de novo."
+  fi
+fi
+for campo in "${CAMPOS_USUARIO[@]}"; do
+  preenchido "$(ler_usuario "$campo")" \
+    || falha "Preencha usuarios.$campo em config/usuarios.local.yaml antes de preparar o ambiente."
 done
 PERFIL_CONFIG="$(ler_config databricks perfil)"
 case "$PERFIL_CONFIG" in
@@ -146,17 +173,33 @@ databricks_nova() {
 
 # ---------- 1. Python ----------
 passo "Python e dependencias"
+# O projeto exige a serie 3.12 (requires-python = "==3.12.*"). Um Python mais
+# novo cria o .venv, mas o pip install falha la na frente com erro obscuro.
+serie_de() { "$1" -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null; }
 PY=""
 for candidato in python3.12 python3 python; do
-  if command -v "$candidato" >/dev/null 2>&1; then PY="$(command -v "$candidato")"; break; fi
+  if command -v "$candidato" >/dev/null 2>&1 \
+     && [[ "$(serie_de "$(command -v "$candidato")")" == "$PYTHON_SERIE" ]]; then
+    PY="$(command -v "$candidato")"; break
+  fi
 done
-[[ -n "$PY" ]] || falha "Python nao encontrado. Instale Python $PYTHON_MIN ou mais novo."
+if [[ -z "$PY" ]]; then
+  achado="$(command -v python3 >/dev/null 2>&1 && python3 --version 2>&1 || echo "nenhum")"
+  falha "O projeto exige Python $PYTHON_SERIE.x, e encontrei: $achado.
+  Ubuntu 24.04 e WSL com Ubuntu 24.04: sudo apt install python3.12 python3.12-venv
+  Ubuntu 22.04: sudo add-apt-repository ppa:deadsnakes/ppa && sudo apt install python3.12 python3.12-venv
+  macOS: brew install python@3.12
+Depois rode o script de novo."
+fi
 PY_VER="$("$PY" -c 'import sys; print(".".join(map(str, sys.version_info[:3])))')"
-versao_ok "$PY_VER" "$PYTHON_MIN" || falha "Python $PY_VER encontrado, o minimo e $PYTHON_MIN."
 ok "Python $PY_VER ($PY)"
 
+if [[ -x "$RAIZ/.venv/bin/python" && "$(serie_de "$RAIZ/.venv/bin/python")" != "$PYTHON_SERIE" ]]; then
+  aviso ".venv criado com Python $(serie_de "$RAIZ/.venv/bin/python"), recriando com $PYTHON_SERIE"
+  rm -rf "$RAIZ/.venv"
+fi
 if [[ ! -d "$RAIZ/.venv" ]]; then
-  "$PY" -m venv "$RAIZ/.venv" || falha "Nao consegui criar o .venv. No Ubuntu: sudo apt install python3-venv"
+  "$PY" -m venv "$RAIZ/.venv" || falha "Nao consegui criar o .venv. No Ubuntu: sudo apt install python3.12-venv"
 fi
 # shellcheck disable=SC1091
 source "$RAIZ/.venv/bin/activate"
@@ -255,9 +298,9 @@ az account show --only-show-errors >/dev/null 2>&1 \
   || falha "Sem sessao no Azure. Rode scripts/preparar_ambiente.sh para autenticar com usuarios.azure (no WSL, use --device-code)."
 AZURE_ATUAL="$(az account show --query user.name -o tsv)"
 if [[ "${AZURE_ATUAL,,}" != "${USUARIO_AZURE,,}" ]]; then
-  falha "Azure autenticou como '$AZURE_ATUAL', mas config/settings.yaml espera '$USUARIO_AZURE'. Rode az logout --username '$AZURE_ATUAL' e depois scripts/preparar_ambiente.sh; na tela de login, escolha '$USUARIO_AZURE'."
+  falha "Azure autenticou como '$AZURE_ATUAL', mas config/usuarios.local.yaml espera '$USUARIO_AZURE'. Rode az logout --username '$AZURE_ATUAL' e depois scripts/preparar_ambiente.sh; na tela de login, escolha '$USUARIO_AZURE'."
 fi
-ok "logado como $AZURE_ATUAL, conforme config/settings.yaml"
+ok "logado como $AZURE_ATUAL, conforme config/usuarios.local.yaml"
 
 # A CLI do GitHub aceita selecionar um usuario ja autenticado, mas nao
 # preseleciona uma conta durante o OAuth. Se houver sessao, ativa a conta
@@ -266,14 +309,14 @@ if command -v gh >/dev/null 2>&1 && gh auth status --hostname github.com >/dev/n
   GH_ATUAL="$(gh api user --jq .login 2>/dev/null || true)"
   if [[ "${GH_ATUAL,,}" != "${USUARIO_GITHUB,,}" ]]; then
     if ! gh auth switch --hostname github.com --user "$USUARIO_GITHUB" >/dev/null 2>&1; then
-      falha "GitHub esta autenticado como '$GH_ATUAL'; '$USUARIO_GITHUB' (config/settings.yaml) nao esta autenticado na CLI. Rode gh auth login --hostname github.com --web com essa conta e tente novamente."
+      falha "GitHub esta autenticado como '$GH_ATUAL'; '$USUARIO_GITHUB' (config/usuarios.local.yaml) nao esta autenticado na CLI. Rode gh auth login --hostname github.com --web com essa conta e tente novamente."
     fi
     GH_ATUAL="$(gh api user --jq .login 2>/dev/null || true)"
   fi
   if [[ "${GH_ATUAL,,}" != "${USUARIO_GITHUB,,}" ]]; then
-    falha "GitHub autenticou como '$GH_ATUAL', mas config/settings.yaml espera '$USUARIO_GITHUB'."
+    falha "GitHub autenticou como '$GH_ATUAL', mas config/usuarios.local.yaml espera '$USUARIO_GITHUB'."
   fi
-  ok "GitHub CLI usa $GH_ATUAL, conforme config/settings.yaml"
+  ok "GitHub CLI usa $GH_ATUAL, conforme config/usuarios.local.yaml"
 fi
 
 if [[ -n "$(env_get AZDO_PAT)" ]]; then
@@ -374,7 +417,7 @@ EOF
     "$DBX" auth login --host "$HOST" --profile "$PERFIL"
     LOGIN="$("$DBX" current-user me --profile "$PERFIL" -o json | "$PY" -c 'import json,sys; print(json.load(sys.stdin)["userName"])')"
     if [[ "${LOGIN,,}" != "${USUARIO_DATABRICKS,,}" ]]; then
-      falha "Databricks autenticou como '$LOGIN', mas config/settings.yaml espera '$USUARIO_DATABRICKS'."
+      falha "Databricks autenticou como '$LOGIN', mas config/usuarios.local.yaml espera '$USUARIO_DATABRICKS'."
     fi
   fi
   ok "Databricks autenticado como $LOGIN, conforme config/settings.yaml"

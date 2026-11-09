@@ -27,7 +27,7 @@ class GitHubClient:
             if atual.casefold() != esperado.casefold():
                 raise RuntimeError(
                     f"GitHub autenticado como '{atual or 'desconhecido'}', mas "
-                    f"config/settings.yaml espera '{esperado}'. Confira "
+                    f"config/usuarios.local.yaml espera '{esperado}'. Confira "
                     "GITHUB_TOKEN.")
 
     def _get(self, url: str, **params):

@@ -20,7 +20,7 @@ from urllib.parse import urlparse
 
 import requests
 from . import auth
-from .config import ROOT, perfil_databricks
+from .config import ROOT, USUARIOS_LOCAL, _load_yaml, perfil_databricks
 
 OK, AVISO, FALHA = "ok", "aviso", "falha"
 
@@ -35,12 +35,49 @@ class Achado:
 def comparar_identidade(assunto: str, esperado: str,
                         observado: str) -> Achado:
     if observado.strip().casefold() == esperado.strip().casefold():
-        return Achado(OK, assunto, f"{observado} (conforme config/settings.yaml)")
+        return Achado(OK, assunto, f"{observado} (conforme config/usuarios.local.yaml)")
     if not observado.strip():
         return Achado(FALHA, assunto,
                       f"nao consegui ler a identidade autenticada; esperado {esperado}.")
     return Achado(FALHA, assunto,
-                  f"autenticado como {observado}, mas config/settings.yaml espera {esperado}.")
+                  f"autenticado como {observado}, mas config/usuarios.local.yaml espera {esperado}.")
+
+
+CAMPOS_USUARIO = ("azure", "databricks", "github", "devops_email", "git_email")
+
+
+def _preenchido(valor: str) -> bool:
+    valor = (valor or "").strip()
+    return bool(valor) and not valor.startswith("PREENCHER") and not valor.startswith("<")
+
+
+def checar_usuarios(cfg: dict, arquivo: Path | None = None,
+                    settings_versionado: Path | None = None) -> list[Achado]:
+    """Confere o arquivo local de identidade, e avisa se ela ainda esta no versionado."""
+    arquivo = arquivo or ROOT / USUARIOS_LOCAL
+    settings_versionado = settings_versionado or ROOT / "config" / "settings.yaml"
+    achados: list[Achado] = []
+    if not arquivo.exists():
+        achados.append(Achado(FALHA, "usuarios",
+                              f"{USUARIOS_LOCAL} nao existe. Rode scripts/preparar_ambiente.sh, "
+                              "que cria o arquivo a partir de config/usuarios.example.yaml."))
+    else:
+        usuarios = cfg.get("usuarios") or {}
+        faltam = [c for c in CAMPOS_USUARIO if not _preenchido(usuarios.get(c, ""))]
+        if faltam:
+            achados.append(Achado(FALHA, "usuarios", "preencha "
+                                  + ", ".join(f"usuarios.{c}" for c in faltam)
+                                  + f" em {USUARIOS_LOCAL}."))
+        else:
+            achados.append(Achado(OK, "usuarios", f"{USUARIOS_LOCAL}, cinco campos preenchidos"))
+    if settings_versionado.exists():
+        legado = (_load_yaml(str(settings_versionado)) or {}).get("usuarios") or {}
+        if any(_preenchido(v) for v in legado.values()):
+            achados.append(Achado(AVISO, "usuarios",
+                                  "config/settings.yaml, que e versionado, ainda tem dados de "
+                                  "usuarios. Confira que estao no arquivo local e descarte: "
+                                  "git checkout config/settings.yaml"))
+    return achados
 
 
 def checar_identidades_locais(cfg: dict) -> list[Achado]:

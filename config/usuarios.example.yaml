@@ -1,0 +1,13 @@
+# Modelo dos identificadores pessoais. Nao edite este arquivo.
+#
+# scripts/preparar_ambiente.sh copia este modelo para config/usuarios.local.yaml,
+# que fica fora do git, e para ate os cinco campos estarem preenchidos. O docs
+# junta esses valores ao config/settings.yaml na leitura.
+#
+# Sao identificadores, nao segredos: nada de token, senha ou chave aqui.
+usuarios:
+  azure: "PREENCHER_EMAIL_DA_CONTA_AZURE" # exemplo: nome.sobrenome@ambevtech.com.br
+  databricks: "PREENCHER_EMAIL_DO_USUARIO_DATABRICKS" # exemplo: nome.sobrenome@ambevtech.com.br
+  github: "PREENCHER_LOGIN_DO_GITHUB" # o login, sem @ e sem e-mail
+  devops_email: "PREENCHER_EMAIL_DO_AZURE_DEVOPS" # exemplo: nome.sobrenome@ambevtech.com.br
+  git_email: "PREENCHER_EMAIL_DO_GIT" # o e-mail dos seus commits

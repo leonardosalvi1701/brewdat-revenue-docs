@@ -29,7 +29,7 @@ class DatabricksClient:
             if atual.casefold() != esperado.casefold():
                 raise RuntimeError(
                     f"Databricks autenticado como '{atual or 'desconhecido'}', "
-                    f"mas config/settings.yaml espera '{esperado}'. Refaça o "
+                    f"mas config/usuarios.local.yaml espera '{esperado}'. Refaça o "
                     "login SSO com a conta configurada.")
 
     def _get(self, endpoint: str, **params):

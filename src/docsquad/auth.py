@@ -33,7 +33,7 @@ RECURSO_DEVOPS = "499b84ac-1321-427f-aa17-267ca6975798"
 INSTRUCAO = (
     "Autentique com uma das duas opcoes:\n"
     "  1. rode scripts/preparar_ambiente.sh; ele usa usuarios.azure de "
-    "config/settings.yaml para conferir a conta apos o login interativo\n"
+    "config/usuarios.local.yaml para conferir a conta apos o login interativo\n"
     "  2. preencha AZDO_PAT no .env, com permissao de leitura de Work Items"
 )
 
@@ -62,7 +62,7 @@ def token_entra(timeout: int = 60) -> str:
         if atual.casefold() != esperado.casefold():
             raise SemCredencial(
                 f"Azure autenticado como '{atual or 'desconhecido'}', mas "
-                f"config/settings.yaml espera '{esperado}'. Rode "
+                f"config/usuarios.local.yaml espera '{esperado}'. Rode "
                 "scripts/preparar_ambiente.sh e escolha a conta configurada.")
 
     try:

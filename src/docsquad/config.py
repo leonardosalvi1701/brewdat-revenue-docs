@@ -7,6 +7,12 @@ garantia central do repo, e a tentacao seria afrouxar o teste.
 
 Por isso o caminho e sobrescrivel por `DOCSQUAD_SETTINGS`. Producao usa o padrao;
 os testes apontam para uma fixture propria com um processo estavel e ficticio.
+
+A identidade de cada pessoa (`usuarios`) nao fica no `settings.yaml`, que e
+versionado e compartilhado. Ela mora em `config/usuarios.local.yaml`, fora do
+git, e e juntada ao settings na leitura. Com `DOCSQUAD_SETTINGS` definido, o
+arquivo local so entra se `DOCSQUAD_USUARIOS` apontar para ele: assim os
+testes nao dependem da maquina de quem roda.
 """
 from __future__ import annotations
 
@@ -28,9 +34,32 @@ def _load_yaml(caminho: str) -> dict:
         return yaml.safe_load(fh)
 
 
+USUARIOS_LOCAL = "config/usuarios.local.yaml"
+USUARIOS_EXEMPLO = "config/usuarios.example.yaml"
+
+
+def _caminho_usuarios() -> str | None:
+    if os.getenv("DOCSQUAD_USUARIOS"):
+        return os.getenv("DOCSQUAD_USUARIOS")
+    if os.getenv("DOCSQUAD_SETTINGS"):
+        return None
+    padrao = ROOT / USUARIOS_LOCAL
+    return str(padrao) if padrao.exists() else None
+
+
+@lru_cache(maxsize=8)
+def _settings(caminho: str, usuarios: str | None) -> dict:
+    base = dict(_load_yaml(caminho) or {})
+    if usuarios:
+        locais = (_load_yaml(usuarios) or {}).get("usuarios") or {}
+        base["usuarios"] = {**(base.get("usuarios") or {}), **locais}
+    return base
+
+
 def settings() -> dict:
-    return _load_yaml(
-        os.getenv("DOCSQUAD_SETTINGS") or str(ROOT / "config" / "settings.yaml")
+    return _settings(
+        os.getenv("DOCSQUAD_SETTINGS") or str(ROOT / "config" / "settings.yaml"),
+        _caminho_usuarios(),
     )
 
 

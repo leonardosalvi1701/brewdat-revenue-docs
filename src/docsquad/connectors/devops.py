@@ -59,7 +59,7 @@ class DevOpsClient:
             if atual.casefold() != esperado.casefold():
                 raise RuntimeError(
                     f"Azure DevOps autenticado como '{atual or 'desconhecido'}', "
-                    f"mas config/settings.yaml espera '{esperado}'. Confira "
+                    f"mas config/usuarios.local.yaml espera '{esperado}'. Confira "
                     "AZDO_PAT ou a sessao de az login.")
 
     # ---------- helpers ----------
