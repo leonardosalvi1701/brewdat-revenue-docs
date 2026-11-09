@@ -1,4 +1,5 @@
 .env
+config/usuarios.local.yaml
 .venv/
 __pycache__/
 *.pyc

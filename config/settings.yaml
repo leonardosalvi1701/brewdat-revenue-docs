@@ -18,15 +18,10 @@ squad:
   nome: Revenue
   produto: Revenue Docs
 
-# Identificadores pessoais para conferir a conta usada em cada ferramenta.
-# Preencha no seu clone antes de rodar scripts/preparar_ambiente.sh.
-# Estes valores nao sao segredos; nao inclua tokens, senhas ou chaves aqui.
-usuarios:
-  azure: "PREENCHER_EMAIL_DA_CONTA_AZURE" # exemplo: leonardo.salvi@ambevtech.com.br
-  databricks: "PREENCHER_EMAIL_DO_USUARIO_DATABRICKS" # exemplo: leonardo.salvi@ambevtech.com.br
-  github: "PREENCHER_LOGIN_DO_GITHUB" # exemplo: leonardosalvi1701
-  devops_email: "PREENCHER_EMAIL_DO_AZURE_DEVOPS" # exemplo: leonardo.salvi@ambevtech.com.br
-  git_email: "PREENCHER_EMAIL_DO_GIT" # exemplo: leonardo.salvi@ambevtech.com.br
+# Os identificadores pessoais (usuarios) nao ficam aqui: este arquivo e
+# versionado e vale para a squad inteira. Cada pessoa preenche os seus em
+# config/usuarios.local.yaml, fora do git, criado pelo
+# scripts/preparar_ambiente.sh a partir de config/usuarios.example.yaml.
 
 devops:
   # Onde o board vive. Nao e segredo: sai da url do board e e igual para toda a

@@ -8,10 +8,11 @@ documentacao e de validacao de tarefas, como escrever o rascunho da sprint
 review ou o comentario de um card a partir do que de fato mudou. Sempre sob
 validacao humana explicita: o agente nunca escreve nada sozinho, so propoe.
 
-> **Depois de clonar, preencha primeiro `usuarios` e confira `databricks.perfil` em `config/settings.yaml`; so
-> entao rode `scripts/preparar_ambiente.sh`, antes de usar qualquer comando
-> `docs`.** O script instala o que falta, exige o login no Azure e cria o seu
-> perfil SSO do Databricks. Sem ele o `docs` nao autentica. Ver
+> **Depois de clonar, rode `scripts/preparar_ambiente.sh` antes de usar
+> qualquer comando `docs`.** Na primeira vez ele cria
+> `config/usuarios.local.yaml` e para, para voce preencher a sua identidade;
+> na segunda, instala o que falta, exige o login no Azure e cria o seu perfil
+> SSO do Databricks. Sem ele o `docs` nao autentica. Ver
 > [Preparacao do ambiente](#preparacao-do-ambiente).
 
 ---
@@ -50,27 +51,31 @@ Antes de comecar:
 - **Python 3.12 instalado.** O script instala as CLIs, mas nao o Python, e o
   projeto exige a serie 3.12 (`requires-python = "==3.12.*"`).
 
-Sao quatro passos:
+Sao cinco passos:
 
 ```bash
 # 1. clonar
 git clone https://github.com/leonardosalvi1701/brewdat-revenue-docs.git
 cd brewdat-revenue-docs
 
-# 2. editar config/settings.yaml: trocar os cinco PREENCHER_... da secao
-#    usuarios pelos seus dados, e conferir databricks.perfil (padrao: revenue)
-
-# 3. preparar o ambiente: instala, faz os logins e confere tudo
+# 2. rodar o script uma vez: ele cria config/usuarios.local.yaml e para
 scripts/preparar_ambiente.sh
 
-# 4. ativar o ambiente, em todo terminal novo
+# 3. editar config/usuarios.local.yaml: trocar os cinco PREENCHER_...
+#    pelos seus dados
+
+# 4. rodar o script de novo: instala, faz os logins e confere tudo
+scripts/preparar_ambiente.sh
+
+# 5. ativar o ambiente, em todo terminal novo
 source .venv/bin/activate
 ```
 
-O que vai em cada campo do passo 2 esta na tabela de
+O que vai em cada campo do passo 3 esta na tabela de
 [Primeiro passo](#primeiro-passo-informar-sua-identidade-depois-rodar-o-script-obrigatorio).
-So identificadores: nada de token, senha ou chave. O script para antes de
-instalar qualquer coisa se algum campo continuar vazio ou com `PREENCHER_...`.
+So identificadores: nada de token, senha ou chave. O arquivo fica fora do git,
+entao seus dados nao vao para commit. O script para antes de instalar
+qualquer coisa se algum campo continuar vazio ou com `PREENCHER_...`.
 
 **Pronto quando** o script termina com `ok Azure DevOps` e `ok Databricks`, e
 `docs quem-sou-eu` mostra voce. O que o script faz, as opcoes e o caminho
@@ -266,9 +271,11 @@ organizacao, Codex com aprovacao desligada). Nao e o fluxo da squad.
 
 ### Primeiro passo: informar sua identidade; depois rodar o script (obrigatorio)
 
-Numa maquina nova, clone o repo e edite somente a secao `usuarios` de
-`config/settings.yaml`. Substitua cada valor `PREENCHER_...` pelo identificador
-da sua propria conta:
+A sua identidade mora em `config/usuarios.local.yaml`, que fica fora do git.
+Na primeira execucao, `scripts/preparar_ambiente.sh` cria esse arquivo a
+partir de `config/usuarios.example.yaml` e para. Substitua cada valor
+`PREENCHER_...` pelo identificador da sua propria conta e rode o script de
+novo:
 
 | Campo | O que informar |
 |---|---|
@@ -280,20 +287,22 @@ da sua propria conta:
 
 Os campos que representam e-mail podem ter o mesmo valor se voce usa o mesmo
 endereco nesses servicos; `usuarios.github` continua sendo o login, nao o
-e-mail. Use identificadores, nao tokens, senhas ou chaves. Esses dados sao
-pessoais: nao os inclua em commits. O script recusa com uma mensagem indicando
-o campo enquanto houver valor vazio ou `PREENCHER_...`; essa validacao acontece
-antes de instalar dependencias ou iniciar logins.
+e-mail. Use identificadores, nao tokens, senhas ou chaves. O script recusa com
+uma mensagem indicando o campo enquanto houver valor vazio ou `PREENCHER_...`;
+essa validacao acontece antes de instalar dependencias ou iniciar logins.
 
-Confira tambem `databricks.perfil`: ele deve ser o nome do perfil SSO que o
-setup criara ou autenticara. O clone vem com `revenue`; mantenha esse valor se
-nao tiver motivo para usar outro nome. Nao altere as demais secoes, que
-descrevem a configuracao compartilhada da squad.
+`config/settings.yaml` e a configuracao compartilhada da squad, e e
+versionado: nao coloque dado pessoal nele. O unico campo que voce confere la e
+`databricks.perfil`, o nome do perfil SSO que o setup criara ou autenticara.
+O clone vem com `revenue`; mantenha esse valor se nao tiver motivo para usar
+outro nome.
 
-**O `config/settings.yaml` e versionado.** Depois de preenchido, ele aparece
-como modificado no `git status`, e assim deve ficar: nao inclua esse arquivo
-em commit. Evite `git commit -a` e `git add .` neste repo, e adicione os
-arquivos pelo nome.
+**Clone de antes de 09/11/2026**, com a identidade preenchida no
+`config/settings.yaml`: o `git pull` recusa sobrescrever o arquivo alterado.
+Guarde os cinco valores (`git diff config/settings.yaml` mostra), descarte com
+`git checkout config/settings.yaml`, faca o `git pull` e rode o script, que
+cria o arquivo local para voce preencher. Se os valores continuarem no
+settings, o script os copia para o arquivo local e avisa para descartar.
 
 Para que serve cada campo, alem de identificar voce:
 
@@ -359,7 +368,7 @@ a mao.
 
 | Requisito | Versao | Para que serve |
 |---|---|---|
-| Python | 3.12.x | exigido pelo projeto (`requires-python = "==3.12.*"`) e usado pelo `docs`. O script aceita versao mais nova, mas o `pip install` falha fora da serie 3.12 |
+| Python | 3.12.x | exigido pelo projeto (`requires-python = "==3.12.*"`) e usado pelo `docs`. O script procura um Python da serie 3.12, para com o comando de instalacao se nao achar, e recria o `.venv` se ele tiver sido criado com outra versao |
 | Azure CLI (`az`) | 2.60.0 | login no Azure, que autentica a leitura do Azure DevOps. **Obrigatorio** |
 | CLI do Databricks (`databricks`) | 1.0.0 | login SSO no workspace, que autentica a leitura de notebooks |
 | Sessao `az login` | valida | sem ela o `docs` nao le o board |
@@ -513,6 +522,9 @@ alguma. Rodar o script de novo corrige a maior parte sozinho.
 
 | Sintoma | O que fazer |
 |---|---|
+| `O projeto exige Python 3.12.x` | instale o Python 3.12 com o comando da mensagem e rode o script de novo |
+| `config/usuarios.local.yaml nao existe` | rode `scripts/preparar_ambiente.sh`, que cria o arquivo a partir do modelo |
+| `preencha usuarios.X em config/usuarios.local.yaml` | troque o `PREENCHER_...` daquele campo pelo seu dado |
 | `docs: command not found` | `source .venv/bin/activate`; se nao existir `.venv`, rodar o script |
 | `O az nao devolveu token` | sessao expirou: rode `scripts/preparar_ambiente.sh` para autenticar com `usuarios.azure` |
 | `O perfil X nao existe` | confira `databricks.perfil` em `config/settings.yaml` e compare com `databricks auth profiles`; rode o script para autenticar |

@@ -513,6 +513,7 @@ def config_check():
     console.print(Panel(json.dumps(cfg["gate"], indent=2), title="Politica do portao"))
 
     achados = (diag.checar_repo() + diag.checar_env_file()
+               + diag.checar_usuarios(cfg)
                + diag.checar_identidades_locais(cfg)
                + diag.checar_identidade_github(cfg))
     try:
