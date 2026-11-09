@@ -236,16 +236,20 @@ A pergunta e garantida pela configuracao de cada ferramenta, gerada de
 VS Code. O que precisa estar ligado em cada uma esta em
 `agent_instructions/ferramentas/`. Ver ADR-0015.
 
-Pelo terminal, para revisar varias de uma vez, `docs decidir` percorre as
-pendentes da mais antiga para a mais nova, mostra cada uma e pergunta
-`(a)provar  (r)ecusar  (p)ular  (s)air`. No fim, pergunta se aplica as
-aprovadas. So roda em terminal interativo.
+Para revisar varias de uma vez, tambem pelo chat: "revisa as propostas
+pendentes". O agente lista com `docs review` e segue uma por vez, `docs show`
+e depois `approve` ou `reject` conforme a sua resposta, com a janela
+perguntando a cada uma.
 
-Nos dois caminhos a identidade de quem aprova sai do `az login`; `--by` ou
-`--como` sobrescrevem. Nenhum dos comandos de decisao roda em CI.
+A identidade de quem aprova sai do `az login`; `--by` sobrescreve. Nenhum dos
+comandos de decisao roda em CI.
 
 `docs propose` e o unico comando de escrita que um agente roda sem perguntar.
-Decidir e sempre seu, pela janela de permissao ou pelo terminal.
+Decidir e sempre seu, na janela de permissao, dentro da conversa.
+
+`docs decidir`, o caminho interativo do terminal, fica so como contingencia
+para quando a janela de uma ferramenta nao funcionar (hooks desligados pela
+organizacao, Codex com aprovacao desligada). Nao e o fluxo da squad.
 
 ---
 

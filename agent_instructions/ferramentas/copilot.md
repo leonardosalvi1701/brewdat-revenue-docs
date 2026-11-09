@@ -25,7 +25,8 @@ O que precisa estar ligado:
 
 - no VS Code, a pasta marcada como confiavel (Workspace Trust) e os hooks
   ligados (`chat.useHooks`, ligado por padrao). A organizacao pode desligar
-  hooks; nesse caso, aprovar so pelo `docs decidir`;
+  hooks; nesse caso o agente avisa, e `docs decidir` fica como contingencia,
+  por decisao da pessoa;
 - nao usar os niveis "Allow all" ou "Autopilot" neste repo, nem
   `--allow-all-tools` no CLI: a documentacao nao garante que eles respeitem
   o `ask`.

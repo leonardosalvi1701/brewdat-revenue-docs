@@ -102,8 +102,8 @@ decisoes:
     arquivo: ADR-0014-documentacao-dentro-do-notebook.md
 
   - id: ADR-0015
-    titulo: "Aprovacao de proposta pela janela de permissao da ferramenta de IA"
-    status: proposta
+    titulo: "Aprovacao de vigente pela janela de permissao da ferramenta de IA"
+    status: vigente
     projeto: docsquad
     data: 2026-10-09
     arquivo: ADR-0015-aprovacao-pela-janela-de-permissao.md

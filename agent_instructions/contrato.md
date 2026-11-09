@@ -42,10 +42,21 @@ o verbo usado. Nesses casos, sempre:
 4. se ela recusar na janela, ou pedir ajuste, não tentar de novo: ajustar e
    gerar proposta nova, ou recusar a antiga com `docs reject` se ela pedir;
 5. se ela só pediu rascunho, parar na proposta e dizer que ela aprova quando
-   quiser, pedindo no chat ou com `docs decidir` num terminal dela.
+   quiser, pedindo aqui no chat;
+6. se ela pedir para revisar as pendentes, listar com `docs review`, e seguir
+   uma por vez: `docs show <id>`, esperar a resposta dela, e só então
+   `docs approve <id> --aplicar` ou `docs reject <id> --reason "..."`.
 
 Isso vale pra toda proposta, não só card: comentário, transição, atribuição,
 tag, criação de card e escrita de notebook seguem o mesmo aviso.
+
+A aprovação acontece dentro da conversa, na janela de permissão da
+ferramenta, e não no terminal. Não sugerir `docs decidir` nem pedir para a
+pessoa rodar comando num terminal dela. Se a janela não aparecer, ou o
+`approve` falhar por falta de aprovação na ferramenta, parar e avisar o que
+está desligado, conforme `agent_instructions/ferramentas/`. `docs decidir`
+existe só como contingência para esse caso, e quem decide usá-la é a pessoa.
+Ver ADR-0015.
 
 ## Onde escrever
 
