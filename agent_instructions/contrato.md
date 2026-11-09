@@ -79,6 +79,12 @@ Você não edita sem pedido explícito:
 - `agent_instructions/aprovacao.yaml` e `scripts/hooks/`, que definem quando
   a ferramenta pergunta antes de decidir proposta.
 
+Nenhuma pasta de `proposals/` é versionada: a proposta vive só na máquina
+de quem gerou. O registro do que foi publicado é o próprio work item no
+DevOps, com autor e data. Não citar proposta ou caminho de `proposals/` como
+evidência em card, review ou commit; citar o comentário, o estado ou a tag
+publicados.
+
 Você nunca edita, em nenhuma hipótese, porque são gerados: `AGENTS.md`,
 `.claude/`, `.codex/` e `.github/`. Alterar a fonte em `agent_instructions/` e rodar o
 script.

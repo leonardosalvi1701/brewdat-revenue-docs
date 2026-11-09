@@ -22,6 +22,10 @@ Nenhum agente escreve em sistema externo. Agentes produzem **propostas**, que
 sao arquivos JSON em `proposals/pending/`. Um humano aprova. Um executor
 separado aplica apenas o que esta em `proposals/approved/`.
 
+As propostas vivem so na maquina de quem gerou: nenhuma pasta de
+`proposals/` e versionada. O registro do que foi publicado e o proprio work
+item no DevOps, onde o comentario, o estado e a tag ficam com autor e data.
+
 A separacao e fisica, nao contratual: o codigo dos agentes nao importa o
 `Executor`. Se um agente se comportar mal, o pior resultado possivel e um
 arquivo JSON que ninguem aprovou.
@@ -38,43 +42,39 @@ Passo a passo, do clone ao primeiro comentario publicado num card.
 
 ### 1. Clonar, informar sua identidade e preparar o ambiente (obrigatorio)
 
+Antes de comecar:
+
+- **no Windows, tudo roda dentro do WSL**, inclusive o clone. O `docs` so
+  enxerga as CLIs instaladas no mesmo ambiente em que ele roda: um `az`
+  instalado no Windows nao serve para o `docs` do WSL;
+- **Python 3.12 instalado.** O script instala as CLIs, mas nao o Python, e o
+  projeto exige a serie 3.12 (`requires-python = "==3.12.*"`).
+
+Sao quatro passos:
+
 ```bash
+# 1. clonar
 git clone https://github.com/leonardosalvi1701/brewdat-revenue-docs.git
 cd brewdat-revenue-docs
-```
 
-Antes de instalar ou autenticar, edite a secao `usuarios` de
-`config/settings.yaml`: substitua os cinco valores `PREENCHER_...` pelos dados
-da sua conta Azure, Databricks, GitHub, Azure DevOps e Git. A tabela em
-[Primeiro passo](#primeiro-passo-informar-sua-identidade-depois-rodar-o-script-obrigatorio)
-explica campo por campo. Confira tambem `databricks.perfil` (padrao: `revenue`).
-Nao coloque tokens, senhas ou chaves nesses campos e nao inclua os valores
-pessoais em commits. O script para se algum identificador estiver vazio ou
-continuar com `PREENCHER_...`.
+# 2. editar config/settings.yaml: trocar os cinco PREENCHER_... da secao
+#    usuarios pelos seus dados, e conferir databricks.perfil (padrao: revenue)
 
-Depois de preencher a secao, prepare o ambiente:
-
-```bash
+# 3. preparar o ambiente: instala, faz os logins e confere tudo
 scripts/preparar_ambiente.sh
+
+# 4. ativar o ambiente, em todo terminal novo
 source .venv/bin/activate
 ```
 
-O script valida primeiro os identificadores pessoais; depois instala as
-dependencias, instala ou atualiza o Azure CLI e a CLI do
-Databricks, exige o `az login`, cria o `.env` e cria o seu perfil SSO do
-Databricks. Os detalhes, as opcoes e o passo a passo manual estao em
-[Preparacao do ambiente](#preparacao-do-ambiente). Em cada terminal novo:
-`source .venv/bin/activate`.
+O que vai em cada campo do passo 2 esta na tabela de
+[Primeiro passo](#primeiro-passo-informar-sua-identidade-depois-rodar-o-script-obrigatorio).
+So identificadores: nada de token, senha ou chave. O script para antes de
+instalar qualquer coisa se algum campo continuar vazio ou com `PREENCHER_...`.
 
-Esses valores orientam e validam as conexoes: `usuarios.azure` e mostrado antes
-do login e comparado com a conta autenticada; `usuarios.devops_email` preenche
-`AZDO_USER_EMAIL`; `usuarios.git_email` configura o `user.email` local deste
-clone; e o script seleciona a conta `usuarios.github` na CLI `gh` quando ela
-ja estiver autenticada. O `GITHUB_TOKEN`, quando preenchido, e conferido com
-o mesmo login. O login SSO do Databricks nao aceita um e-mail como argumento:
-o navegador deve autenticar `usuarios.databricks`, e o script verifica
-`databricks current-user me` antes de criar a pasta pessoal. `docs config-check`
-repete as conferencias de identidade.
+**Pronto quando** o script termina com `ok Azure DevOps` e `ok Databricks`, e
+`docs quem-sou-eu` mostra voce. O que o script faz, as opcoes e o caminho
+manual estao em [Preparacao do ambiente](#preparacao-do-ambiente).
 
 ### 2. Autenticar nas fontes de dado
 
@@ -179,19 +179,28 @@ docs collect            # se o GitHub estiver certo, sai sem commits_erro
 
 ### 3. Ligar ao agente de IA que voce usa
 
-O repo roda em qualquer agente que leia instrucao de arquivo. Toda instrucao
-mora em `agent_instructions/`, e os caminhos que cada ferramenta espera
-(`AGENTS.md`, `.claude/`, `.github/`, ver tabela abaixo) sao gerados a partir
-dela.
+O repo roda em qualquer agente que leia instrucao de arquivo. Os arquivos que
+cada ferramenta procura (`AGENTS.md`, `.claude/`, `.codex/`, `.github/`) ja
+vem no clone: abrir o agente na pasta do repo basta para ele enxergar o
+contrato e os papeis (`/curador`, `/escritor-sprint-review`,
+`/revisor-negocio`, `/revisor-tecnico`, ou o equivalente da ferramenta).
+
+A aprovacao de proposta acontece no proprio chat, pela janela de permissao da
+ferramenta (ver o passo 5). Para a janela aparecer, cada ferramenta tem uma
+condicao, descrita em `agent_instructions/ferramentas/`:
+
+| Ferramenta | O que precisa estar ligado |
+|---|---|
+| Claude Code | nada: a regra vem em `.claude/settings.json` |
+| Codex | marcar o projeto como confiavel na primeira abertura, e nao rodar com aprovacao desligada (`--yolo`) |
+| Copilot | pasta confiavel no VS Code, hooks ligados, e sem "Allow all", "Autopilot" ou `--allow-all-tools` |
+
+So quem altera `agent_instructions/` precisa regenerar os derivados:
 
 ```bash
 python scripts/sync_agent_files.py           # regenera os derivados
 python scripts/sync_agent_files.py --check   # falha se algum estiver atrasado
 ```
-
-Depois disso o agente ja enxerga o contrato e os papeis — `/curador`,
-`/escritor-sprint-review`, `/revisor-negocio`, `/revisor-tecnico`, ou o
-equivalente da ferramenta que voce usa — sem configuracao extra.
 
 ### 4. Puxar a sprint e gerar o paper da review
 
@@ -281,25 +290,49 @@ setup criara ou autenticara. O clone vem com `revenue`; mantenha esse valor se
 nao tiver motivo para usar outro nome. Nao altere as demais secoes, que
 descrevem a configuracao compartilhada da squad.
 
-```bash
-git clone https://github.com/leonardosalvi1701/brewdat-revenue-docs.git
-cd brewdat-revenue-docs
-# edite config/settings.yaml: substitua os cinco PREENCHER_... em usuarios
-# e confira databricks.perfil (padrao: revenue)
-scripts/preparar_ambiente.sh
-```
+**O `config/settings.yaml` e versionado.** Depois de preenchido, ele aparece
+como modificado no `git status`, e assim deve ficar: nao inclua esse arquivo
+em commit. Evite `git commit -a` e `git add .` neste repo, e adicione os
+arquivos pelo nome.
 
-Depois da validacao de identidade, o script faz, nesta ordem:
+Para que serve cada campo, alem de identificar voce:
+
+- `usuarios.azure` e mostrado antes do login e comparado com a conta
+  autenticada;
+- `usuarios.devops_email` preenche `AZDO_USER_EMAIL` no `.env`, usado pelo
+  `--meus`;
+- `usuarios.git_email` configura o `user.email` local deste clone;
+- `usuarios.github` seleciona a conta na CLI `gh`, quando ela ja estiver
+  autenticada, e e comparado com o dono do `GITHUB_TOKEN`;
+- `usuarios.databricks` e conferido por `databricks current-user me` depois
+  do login SSO, que nao aceita e-mail como argumento: no navegador, entre com
+  essa conta.
+
+`docs config-check` repete todas as conferencias.
+
+Depois de preencher, rode `scripts/preparar_ambiente.sh`. Depois da validacao
+de identidade, ele faz, nesta ordem:
 
 1. cria o `.venv` e instala `requirements.txt`;
-2. instala o Azure CLI, ou atualiza se estiver abaixo do minimo;
-3. **exige o `az login`**, e para se nao houver sessao valida;
-4. instala ou atualiza a CLI do Databricks;
-5. **usa `databricks.perfil` do `config/settings.yaml`** para criar ou
+2. cria o `.env` a partir do `.env.example`, se ainda nao existir, e preenche
+   `AZDO_USER_EMAIL`;
+3. instala o Azure CLI, ou atualiza se estiver abaixo do minimo;
+4. **exige o `az login`**, e para se nao houver sessao valida;
+5. instala ou atualiza a CLI do Databricks;
+6. **usa `databricks.perfil` do `config/settings.yaml`** para criar ou
    autenticar o perfil SSO (ver
    [Criar o perfil do Databricks](#criar-o-perfil-do-databricks));
-6. termina com `docs config-check`, que deve mostrar `ok Azure DevOps` e
+7. termina com `docs config-check`, que deve mostrar `ok Azure DevOps` e
    `ok Databricks`.
+
+O `.env` nao precisa de mais nada para o fluxo normal:
+
+| Variavel | O que fazer |
+|---|---|
+| `DATABRICKS_HOST` | ja vem com o workspace da squad |
+| `AZDO_USER_EMAIL` | o script preenche |
+| `AZDO_PAT` | deixar vazio: preenchido, ele passa na frente do `az login` |
+| `GITHUB_TOKEN` | opcional, para evidencia de commit (ver 2.2) |
 
 Pede `sudo` apenas para instalar ou atualizar CLI, e abre o navegador para os
 dois logins. Pode ser rodado de novo sem estrago. **Rode de novo sempre que:**
@@ -318,18 +351,15 @@ Em cada terminal novo, antes de usar o `docs`: `source .venv/bin/activate`.
 | `--device-code` | login por codigo, sem abrir navegador. Padrao no WSL |
 | `--sem-databricks` | pula a instalacao e o login do Databricks durante o setup. A conferencia final ainda exige CLI e perfil Databricks validos; use se eles ja estiverem prontos. |
 
-**No Windows, usar o WSL e rodar tudo dentro do Linux.** O `docs` so enxerga
-as CLIs instaladas no mesmo ambiente em que ele roda: um `az` instalado no
-Windows nao serve para o `docs` do WSL.
-
 ### Requisitos
 
-O script garante todos. A tabela serve para conferir ou para quem prepara a
-maquina a mao.
+O script instala e confere as CLIs e os logins. O Python precisa estar
+instalado antes. A tabela serve para conferir ou para quem prepara a maquina
+a mao.
 
-| Requisito | Versao minima | Para que serve |
+| Requisito | Versao | Para que serve |
 |---|---|---|
-| Python | 3.12 | exigido pelo projeto (`pyproject.toml`) e usado pelo `docs` |
+| Python | 3.12.x | exigido pelo projeto (`requires-python = "==3.12.*"`) e usado pelo `docs`. O script aceita versao mais nova, mas o `pip install` falha fora da serie 3.12 |
 | Azure CLI (`az`) | 2.60.0 | login no Azure, que autentica a leitura do Azure DevOps. **Obrigatorio** |
 | CLI do Databricks (`databricks`) | 1.0.0 | login SSO no workspace, que autentica a leitura de notebooks |
 | Sessao `az login` | valida | sem ela o `docs` nao le o board |
@@ -571,7 +601,7 @@ Onde falta material, o rascunho deixa a lacuna a vista. Ver ADR-0009.
 | `review-log/` | comentarios de revisores humanos, transcritos |
 | `knowledge/` | cards, commits, notebooks, dossies e sprint reviews coletados ou de referencia |
 | `outputs/` | rascunhos gerados para revisao e edicao humana |
-| `proposals/` | propostas por estado (`pending`, `approved`, `rejected`, `applied`), auditaveis pelo git |
+| `proposals/` | propostas por estado (`pending`, `approved`, `rejected`, `applied`), locais e fora do git. O registro do que foi publicado e o work item no DevOps |
 
 ---
 
