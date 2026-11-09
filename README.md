@@ -562,7 +562,7 @@ Onde falta material, o rascunho deixa a lacuna a vista. Ver ADR-0009.
 | `config/glossario.yaml` | vocabulario canonico. Um conceito, um termo |
 | `decisions/` | ADRs. A fonte da verdade do "por que" |
 | `contracts/` | contratos de estilo. Nao vao para o indice de busca |
-| `templates/` | os seis padroes de documento |
+| `templates/` | os sete padroes de documento |
 | `agent_instructions/` | contrato, papeis, rubricas e notas por ferramenta |
 | `review-log/` | comentarios de revisores humanos, transcritos |
 | `knowledge/` | cards, commits, notebooks, dossies e sprint reviews coletados ou de referencia |
@@ -571,7 +571,7 @@ Onde falta material, o rascunho deixa a lacuna a vista. Ver ADR-0009.
 
 ---
 
-## Os seis padroes de documento
+## Os sete padroes de documento
 
 1. **Paper tecnico** (`templates/paper-tecnico.md`) - engenharia ou ciencia de dados
 2. **Paper de negocio** (`templates/paper-negocio.md`) - teto de 10 paginas
@@ -579,6 +579,7 @@ Onde falta material, o rascunho deixa a lacuna a vista. Ver ADR-0009.
 4. **Comentario de card** (`templates/card-comment.md`) - formato 📌 da squad
 5. **Documentacao de notebook** (`templates/notebook-doc.md`) - dentro do proprio notebook
 6. **Sprint review** (`templates/sprint-review.md`)
+7. **Paper de resultado de experimento** (`templates/paper-resultado-experimento.md`) - resultados, Pontos de melhoria e priorizacao
 
 Os padroes 3 e 4 foram extraidos dos 43 cards e 170 comentarios da S3-Q3-26,
 e nao desenhados: cada item do DoD e um item que a squad ja usava. Ver
@@ -589,6 +590,9 @@ O padrao 5 foi extraido do notebook 30, do repositorio de modelagem, e a voz
 esta em `contracts/estilo-notebook.md`. A documentacao apresenta o contexto e
 os conceitos, descreve metodologia e variaveis, contextualiza cada secao,
 interpreta as saidas e fecha com uma sintese. Ver ADR-0014.
+
+O padrao 7 foi extraido do paper do experimento de desconto de outubro de
+2026, publicado no Loop. A regua de leitura que ele usa esta no ADR-0016.
 
 ---
 

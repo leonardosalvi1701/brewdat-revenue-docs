@@ -49,7 +49,7 @@ termos:
     definicao: "trava de eficiencia que relaciona uplift exigido e desconto concedido"
     proibidos: ["ROI", "retorno", "lucro"]
     publico: ambos
-    nota: "nunca 'ROI' sozinho: e trava de eficiencia, nao estimativa de lucro"
+    nota: "nunca 'ROI' sozinho: e trava de eficiencia, nao estimativa de lucro. O retorno medido em experimento tem tres termos proprios, sempre qualificados: ROI tecnico ajustado, ROI tecnico de Revenue e ROI do dashboard"
 
   qmin:
     canonico: "Qmin"
@@ -65,6 +65,99 @@ termos:
       Esboco minimo: confundido com o Otimizador de Volume no rascunho de
       09/09/2026 (review-log/2026-09-09-sprint-review-S4-Q3-26-REVENUE-DI-alice.md).
       Definicao completa ainda por confirmar com a squad.
+
+  # Leitura de experimento de desconto. Registrados em 09/11/2026, a partir do
+  # experimento de outubro de 2026. Ver ADR-0016.
+
+  grupo_de_tratamento:
+    canonico: "grupo de tratamento"
+    definicao: "PDVs sorteados para receber o desconto do modelo"
+    proibidos: ["braco", "braco de tratamento", "tratados"]
+    publico: ambos
+
+  grupo_de_controle:
+    canonico: "grupo de controle"
+    definicao: "PDVs sorteados para receber a pratica, sem o desconto do modelo"
+    proibidos: ["braco", "braco de controle"]
+    publico: ambos
+
+  pratica:
+    canonico: "pratica"
+    definicao: "o desconto que o par receberia sem o modelo de desconto, dado pelo motor de volume; e o que o grupo de controle recebe"
+    publico: ambos
+    nota: "em texto de negocio, 'desconto da pratica' na primeira ocorrencia"
+
+  cesta:
+    canonico: "cesta"
+    definicao: "conjunto de pares PDV x SKU escolhidos para receber a promocao no experimento"
+    publico: ambos
+
+  linha_de_base:
+    canonico: "linha de base"
+    definicao: "venda que o par teria sem a promocao, estimada pelo proprio passado; a janela depende da regua do ROI"
+    proibidos: ["baseline (em texto de negocio)"]
+    publico: ambos
+
+  uplift:
+    canonico: "uplift"
+    definicao: "variacao percentual da venda do periodo contra a linha de base"
+    publico: ambos
+    nota: "dizer sempre de que: uplift de volume ou uplift de faturamento, e contra qual linha de base"
+
+  roi_tecnico_ajustado:
+    canonico: "ROI tecnico ajustado"
+    definicao: "faturamento a mais do grupo de tratamento sobre o de controle, por regressao por par ajustada pela compra antes da selecao, dividido pelo gasto a mais"
+    exige_formula: true
+    publico: ambos
+    nota: "so existe na diferenca entre os grupos; responde quanto o desconto do modelo rendeu a mais que a pratica"
+
+  roi_tecnico_de_revenue:
+    canonico: "ROI tecnico de Revenue"
+    definicao: "uplift de faturamento contra a media dos mesmos pares no mesmo dia da semana nas 12 semanas antes do inicio, dividido pelo gasto"
+    exige_formula: true
+    publico: ambos
+
+  roi_do_dashboard:
+    canonico: "ROI do dashboard"
+    definicao: "KPI de eficiencia de volume da area: crescimento do faturamento contra os 110 dias anteriores menos o do cluster de PDVs parecidos, ponderado pela fatia da iniciativa no desconto, dividido pelo investimento, mais 1"
+    publico: ambos
+    nota: "o nivel nao e efeito (o teste placebo tambem sai alto); so a diferenca entre os grupos se compara"
+
+  custo_por_conversao:
+    canonico: "custo por conversao"
+    definicao: "gasto em desconto dividido pelo numero de conversoes do grupo"
+    publico: ambos
+
+  manutencao_das_conversoes:
+    canonico: "manutencao das conversoes"
+    definicao: "parte do gasto do grupo de tratamento que pagaria, no desconto da pratica, as conversoes que aconteceriam de qualquer forma"
+    exige_formula: true
+    publico: ambos
+
+  gasto_a_mais_em_desconto:
+    canonico: "gasto a mais em desconto"
+    definicao: "parte do gasto do grupo de tratamento que paga desconto maior as mesmas conversoes que aconteceriam com a pratica; verba sem conversao a mais"
+    exige_formula: true
+    publico: ambos
+    nota: "nas figuras do paper de outubro de 2026 aparece como 'dose a mais'; em texto novo, usar o canonico"
+
+  conversoes_novas:
+    canonico: "conversoes novas"
+    definicao: "parte do gasto do grupo de tratamento paga aos pares que so converteram por causa do desconto do modelo"
+    exige_formula: true
+    publico: ambos
+
+  data_de_leitura:
+    canonico: "data de leitura"
+    definicao: "data fixa ate a qual as notas entram na leitura de um experimento; leitura parcial antes do fim da vigencia, leitura final depois dele, com as notas maduras"
+    publico: ambos
+    nota: "a aderencia registra compra com atraso de 2 a 5 dias; leitura sem data fixa muda de numero a cada execucao"
+
+  ponto_de_melhoria:
+    canonico: "Ponto"
+    definicao: "melhoria proposta a partir de um resultado, apresentada com problema, evidencia e solucao"
+    proibidos: ["ficha"]
+    publico: ambos
 
 enquadramentos_obrigatorios:
   summer: >

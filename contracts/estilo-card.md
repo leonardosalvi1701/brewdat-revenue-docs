@@ -10,7 +10,11 @@ antes de assumir que o contrato esta certo. Ver ADR-0010.
 ## Corpo do card
 `templates/card.md`. Quatro secoes: Descricao, DoR, DoD e lista de tarefas.
 
-- descricao em prosa, contexto e objetivo antes do escopo;
+- titulo `{Tema} | {acao no contexto}`, entendivel sozinho no quadro;
+- descricao em prosa, contexto e objetivo antes do escopo. O contexto traz o
+  numero que motiva o card, com fonte e data;
+- a descricao fecha com `Validacao`: como vamos provar que funcionou e quem
+  valida. A evidencia da entrega vai no campo `Evidencias da Validacao`;
 - card fora do planejamento declara a origem. Sem isso a review nao consegue
   explicar a diferenca entre planejado e entregue;
 - Bug nao usa escopo. Usa Problema, Causa e Solucao ou encaminhamento, com o
@@ -37,7 +41,12 @@ Rotulos, todos opcionais menos o Status: `Status`, `Proximos passos`,
   escrita como causa nao e;
 - commits citados por sha curto e mensagem;
 - sem travessao em prosa corrida. Virgula, dois pontos ou parenteses.
-  Travessao permitido em itemizacao e no em dash do cabecalho.
+  Travessao permitido em itemizacao e no em dash do cabecalho;
+- o card e lido por quem nao tem acesso ao ambiente de quem escreveu. Citar a
+  pasta do workspace, a tabela, o documento no Loop ou o caminho no monorepo,
+  e nunca caminho de repositorio pessoal ou pasta local;
+- link de job do Databricks nao serve como referencia duravel: o id muda a cada
+  recriacao. O link estavel e o do notebook no workspace.
 
 ## Um comentario por unidade de trabalho
 O comentario e a materia-prima da sprint review, e e a unica fonte de "por que

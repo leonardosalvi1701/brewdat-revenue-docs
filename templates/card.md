@@ -10,6 +10,16 @@ DoD e a lista de tarefas. Extraido dos cards reais da S3-Q3-26; ver ADR-0010.
 
 ---
 
+## Titulo
+
+`{Tema} | {acao no contexto}`. O tema agrupa os cards de uma mesma frente e a
+acao diz o que este card entrega, de forma que o titulo sozinho se entenda no
+quadro. "Melhoria 1 | Regras de politica do desconto: transicoes graduais,
+lambda por segmento e verificacao de canibalizacao" e o padrao;
+"Implementacao de Melhoria 1" nao e.
+
+---
+
 ## Descricao
 
 Prosa, dois ou tres paragrafos, nesta ordem:
@@ -25,6 +35,15 @@ entre o planejado e o entregue na review, e some se nao for registrado agora.
 ### Escopo do trabalho
 - item de escopo, verbo no infinitivo
 - um item por entrega verificavel, nao por passo de execucao
+
+### Validacao
+- como vamos provar que funcionou: o numero ou a comparacao que confirma, com
+  o valor de hoje quando houver ("razao entre realizado e previsto perto de 1;
+  hoje 0,69 em cerveja")
+- quem valida, quando a validacao for de outra pessoa ou area
+
+O resultado vai para o campo `Evidencias da Validacao` na entrega, e nao para
+a descricao.
 
 ### Para Bug, no lugar do escopo
 **Problema:** o que se observa, com o caso concreto: PDV, SKU, id de promocao,
@@ -54,7 +73,10 @@ motivo declarado para o card nao entrar na sprint.
 Marcar antes de mover para `Waiting-QA`. Card so vai para `Done` com o DoD
 marcado e o QA registrado em comentario.
 
-Escolher **um** bloco, pela natureza do trabalho, e apagar os outros.
+Escolher **um** bloco, pela natureza do trabalho, e apagar os outros. Cada
+item do bloco pode ganhar o detalhe deste card depois de dois pontos
+("Regra antiga versus nova documentada: comportamento anterior as alteracoes
+de agosto contra o atual"), sem trocar o item por outro.
 
 ### Analise e EDA
 - [ ] Fontes de dados identificadas e confiaveis
@@ -96,3 +118,17 @@ Dentro do card, e nao como work item filho: o processo da squad nao tem tipo
 
 Tarefa que sobra no fim da sprint nao se apaga. Ela e a materia-prima da
 secao de proximos passos da review.
+
+---
+
+## Antes de salvar
+
+Conferir no card, e nao so no corpo:
+
+- **sprint**: card criado sem sprint fica com o caminho da raiz do projeto em
+  `System.IterationPath` e nao aparece no quadro, mesmo com a sprint
+  configurada no time;
+- **tag do tema**, igual a dos cards da mesma frente (por exemplo
+  `Otimizacao`). Ver ADR-0013;
+- **esforco** na escala da squad: 1 ponto = 1 turno = meio dia, 2 pontos por
+  dia util.

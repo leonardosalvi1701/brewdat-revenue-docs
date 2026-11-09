@@ -158,7 +158,7 @@ resolve esse conflito sozinho, e nem deveria. O autor arbitra.
 ## Estilo de texto gerado
 
 - português do Brasil;
-- o template manda: `templates/` define os seis padrões de documento, e
+- o template manda: `templates/` define os sete padrões de documento, e
   `contracts/` define o estilo de cada um que já tem contrato escrito, hoje
   card e comentário de card, sprint review e notebook;
 - documentação de notebook mora no próprio notebook, em células markdown, e
