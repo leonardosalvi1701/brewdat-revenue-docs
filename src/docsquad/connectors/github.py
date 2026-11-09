@@ -21,6 +21,14 @@ class GitHubClient:
             "Accept": "application/vnd.github+json",
             "X-GitHub-Api-Version": "2022-11-28",
         })
+        esperado = settings().get("usuarios", {}).get("github", "").strip()
+        if esperado:
+            atual = self._get("https://api.github.com/user").get("login", "").strip()
+            if atual.casefold() != esperado.casefold():
+                raise RuntimeError(
+                    f"GitHub autenticado como '{atual or 'desconhecido'}', mas "
+                    f"config/settings.yaml espera '{esperado}'. Confira "
+                    "GITHUB_TOKEN.")
 
     def _get(self, url: str, **params):
         r = self.s.get(url, params=params, timeout=60)

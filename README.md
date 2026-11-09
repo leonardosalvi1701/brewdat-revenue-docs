@@ -8,9 +8,10 @@ documentacao e de validacao de tarefas, como escrever o rascunho da sprint
 review ou o comentario de um card a partir do que de fato mudou. Sempre sob
 validacao humana explicita: o agente nunca escreve nada sozinho, so propoe.
 
-> **Antes de usar qualquer comando `docs`, rode `scripts/preparar_ambiente.sh`.**
-> Ele instala o que falta, exige o login no Azure e cria o seu perfil SSO do
-> Databricks. Sem ele o `docs` nao autentica. Ver
+> **Depois de clonar, preencha primeiro `usuarios` e confira `databricks.perfil` em `config/settings.yaml`; so
+> entao rode `scripts/preparar_ambiente.sh`, antes de usar qualquer comando
+> `docs`.** O script instala o que falta, exige o login no Azure e cria o seu
+> perfil SSO do Databricks. Sem ele o `docs` nao autentica. Ver
 > [Preparacao do ambiente](#preparacao-do-ambiente).
 
 ---
@@ -35,20 +36,45 @@ engano, porque fechar card e decisao humana feita na interface do DevOps.
 
 Passo a passo, do clone ao primeiro comentario publicado num card.
 
-### 1. Clonar e preparar o ambiente (obrigatorio)
+### 1. Clonar, informar sua identidade e preparar o ambiente (obrigatorio)
 
 ```bash
 git clone https://github.com/leonardosalvi1701/brewdat-revenue-docs.git
 cd brewdat-revenue-docs
-scripts/preparar_ambiente.sh --perfil revenue
+```
+
+Antes de instalar ou autenticar, edite a secao `usuarios` de
+`config/settings.yaml`: substitua os cinco valores `PREENCHER_...` pelos dados
+da sua conta Azure, Databricks, GitHub, Azure DevOps e Git. A tabela em
+[Primeiro passo](#primeiro-passo-informar-sua-identidade-depois-rodar-o-script-obrigatorio)
+explica campo por campo. Confira tambem `databricks.perfil` (padrao: `revenue`).
+Nao coloque tokens, senhas ou chaves nesses campos e nao inclua os valores
+pessoais em commits. O script para se algum identificador estiver vazio ou
+continuar com `PREENCHER_...`.
+
+Depois de preencher a secao, prepare o ambiente:
+
+```bash
+scripts/preparar_ambiente.sh
 source .venv/bin/activate
 ```
 
-O script instala as dependencias, instala ou atualiza o Azure CLI e a CLI do
+O script valida primeiro os identificadores pessoais; depois instala as
+dependencias, instala ou atualiza o Azure CLI e a CLI do
 Databricks, exige o `az login`, cria o `.env` e cria o seu perfil SSO do
 Databricks. Os detalhes, as opcoes e o passo a passo manual estao em
 [Preparacao do ambiente](#preparacao-do-ambiente). Em cada terminal novo:
 `source .venv/bin/activate`.
+
+Esses valores orientam e validam as conexoes: `usuarios.azure` e mostrado antes
+do login e comparado com a conta autenticada; `usuarios.devops_email` preenche
+`AZDO_USER_EMAIL`; `usuarios.git_email` configura o `user.email` local deste
+clone; e o script seleciona a conta `usuarios.github` na CLI `gh` quando ela
+ja estiver autenticada. O `GITHUB_TOKEN`, quando preenchido, e conferido com
+o mesmo login. O login SSO do Databricks nao aceita um e-mail como argumento:
+o navegador deve autenticar `usuarios.databricks`, e o script verifica
+`databricks current-user me` antes de criar a pasta pessoal. `docs config-check`
+repete as conferencias de identidade.
 
 ### 2. Autenticar nas fontes de dado
 
@@ -57,11 +83,21 @@ fonte, e o que fazer para o GitHub, que o script nao configura.
 
 #### 2.1 Azure DevOps (obrigatorio)
 
-Pelo `az login`, que o script exige. Nao precisa de nada no `.env`. Quando a
-sessao expira, rode `az login` de novo (no WSL, `az login --use-device-code`).
+Pelo `az login` interativo. O script mostra `usuarios.azure` para orientar a
+escolha no navegador e compara o valor com a conta autenticada. Nao precisa de
+nada no `.env`. Quando a sessao expira, rode
+`scripts/preparar_ambiente.sh` de novo (no WSL, com `--device-code`).
 
+`az login` interativo nao recebe o e-mail como argumento. O parâmetro
+`--username` e usado junto com senha e nao atende ao fluxo corporativo com MFA;
+por isso, o script verifica a conta retornada e para se ela diferir de
+`usuarios.azure`. Consulte a [documentacao de login interativo do Azure CLI](https://learn.microsoft.com/en-us/cli/azure/authenticate-azure-cli-interactively).
+
+`AZDO_USER_EMAIL` e preenchido a partir de `usuarios.devops_email` e usado pelo
+`--meus`; `docs config-check` confirma o e-mail que o Azure DevOps devolve.
 `AZDO_PAT` no `.env` fica so para execucao sem sessao interativa. Preenchido,
-ele tem precedencia sobre o `az login`, entao deixe vazio no uso normal.
+ele tem precedencia sobre o `az login`, e a identidade devolvida pelo DevOps
+continua sendo comparada com o campo configurado.
 
 ```bash
 docs config-check       # valida credenciais sem escrever nada
@@ -81,7 +117,8 @@ sprint review e para o comentario de card.
    voce quer acompanhar (`repo`, no classico; `Contents: Read-only`, no
    fine-grained). Se a org `BrewDat` usa SSO, autorize o token para ela logo
    depois de criar.
-2. Preencha `GITHUB_TOKEN` no `.env`.
+2. Preencha `GITHUB_TOKEN` no `.env`. `docs config-check` consulta a identidade
+   associada ao token e compara o login com `usuarios.github`.
 3. Confira se o repo que voce quer acompanhar esta em
    `config/settings.yaml`, em `github.repos`. E uma lista, nao um campo
    unico: se voce trabalha em mais de um repo (por exemplo o
@@ -110,10 +147,14 @@ sabe quais notebooks mudaram e quais ainda nao tem cabecalho documentado
 (`docs notebooks`), o que tambem vira materia-prima para documentacao e
 comentario de card.
 
-O workspace nao permite gerar token pessoal: o acesso e por perfil SSO.
+O workspace nao permite gerar token pessoal: o acesso e por perfil SSO. O
+comando SSO abre o fluxo do navegador e nao aceita o e-mail como argumento; o
+script consulta `databricks current-user me` depois do login e para se a conta
+nao corresponder a `usuarios.databricks`.
 
-1. O script cria o perfil e grava `DATABRICKS_CONFIG_PROFILE` no `.env`. Para
-   criar a mao, trocar ou recriar, ver
+1. O nome do perfil e configurado em `databricks.perfil` no
+   `config/settings.yaml`. O script cria ou autentica essa entrada em
+   `~/.databrickscfg`. Para criar a mao, trocar ou recriar, ver
    [Criar o perfil do Databricks](#criar-o-perfil-do-databricks).
 2. `DATABRICKS_HOST` ja vem preenchido no `.env.example` com o workspace da
    squad.
@@ -124,6 +165,8 @@ O workspace nao permite gerar token pessoal: o acesso e por perfil SSO.
    ```bash
    databricks workspace mkdirs "/Workspace/Users/<seu login>/revenue-docs" --profile revenue
    ```
+   Troque `revenue` pelo valor de `databricks.perfil` se voce configurou outro
+   nome.
    Em `config/settings.yaml` o caminho aparece como
    `/Workspace/Users/{usuario}/revenue-docs`: o `{usuario}` e trocado pelo
    login de quem esta autenticado, entao a mesma linha serve para a squad
@@ -208,23 +251,48 @@ Decidir e sempre seu, pela janela de permissao ou pelo terminal.
 
 ## Preparacao do ambiente
 
-### Primeiro passo: rodar o script (obrigatorio)
+### Primeiro passo: informar sua identidade; depois rodar o script (obrigatorio)
 
-Numa maquina nova, antes de qualquer comando `docs`:
+Numa maquina nova, clone o repo e edite somente a secao `usuarios` de
+`config/settings.yaml`. Substitua cada valor `PREENCHER_...` pelo identificador
+da sua propria conta:
+
+| Campo | O que informar |
+|---|---|
+| `usuarios.azure` | E-mail da conta com que voce entra no Azure (`az login`). |
+| `usuarios.databricks` | E-mail/nome de usuario da conta Databricks que o perfil SSO vai autenticar. |
+| `usuarios.github` | Seu login do GitHub, sem `@`. |
+| `usuarios.devops_email` | E-mail associado a sua conta no Azure DevOps. |
+| `usuarios.git_email` | Valor de `git config user.email`, usado nos seus commits. |
+
+Os campos que representam e-mail podem ter o mesmo valor se voce usa o mesmo
+endereco nesses servicos; `usuarios.github` continua sendo o login, nao o
+e-mail. Use identificadores, nao tokens, senhas ou chaves. Esses dados sao
+pessoais: nao os inclua em commits. O script recusa com uma mensagem indicando
+o campo enquanto houver valor vazio ou `PREENCHER_...`; essa validacao acontece
+antes de instalar dependencias ou iniciar logins.
+
+Confira tambem `databricks.perfil`: ele deve ser o nome do perfil SSO que o
+setup criara ou autenticara. O clone vem com `revenue`; mantenha esse valor se
+nao tiver motivo para usar outro nome. Nao altere as demais secoes, que
+descrevem a configuracao compartilhada da squad.
 
 ```bash
-git clone https://github.com/leonardosalvi1701/brewdat-revenue-docs.git && cd brewdat-revenue-docs
-scripts/preparar_ambiente.sh --perfil revenue
+git clone https://github.com/leonardosalvi1701/brewdat-revenue-docs.git
+cd brewdat-revenue-docs
+# edite config/settings.yaml: substitua os cinco PREENCHER_... em usuarios
+# e confira databricks.perfil (padrao: revenue)
+scripts/preparar_ambiente.sh
 ```
 
-O script faz, nesta ordem:
+Depois da validacao de identidade, o script faz, nesta ordem:
 
 1. cria o `.venv` e instala `requirements.txt`;
 2. instala o Azure CLI, ou atualiza se estiver abaixo do minimo;
 3. **exige o `az login`**, e para se nao houver sessao valida;
 4. instala ou atualiza a CLI do Databricks;
-5. **cria o perfil SSO do Databricks** e grava o nome dele em
-   `DATABRICKS_CONFIG_PROFILE` no `.env` (ver
+5. **usa `databricks.perfil` do `config/settings.yaml`** para criar ou
+   autenticar o perfil SSO (ver
    [Criar o perfil do Databricks](#criar-o-perfil-do-databricks));
 6. termina com `docs config-check`, que deve mostrar `ok Azure DevOps` e
    `ok Databricks`.
@@ -241,10 +309,10 @@ Em cada terminal novo, antes de usar o `docs`: `source .venv/bin/activate`.
 
 | Opcao | Efeito |
 |---|---|
-| `--perfil revenue` | nome do perfil do Databricks. Sem ela, o script pergunta |
+| `--perfil revenue` | compatibilidade: valida que o nome coincide com `databricks.perfil`; configure o perfil no `settings.yaml` |
 | `--atualizar` | forca atualizar `az` e `databricks` mesmo acima do minimo |
 | `--device-code` | login por codigo, sem abrir navegador. Padrao no WSL |
-| `--sem-databricks` | pula a CLI e o perfil do Databricks |
+| `--sem-databricks` | pula a instalacao e o login do Databricks durante o setup. A conferencia final ainda exige CLI e perfil Databricks validos; use se eles ja estiverem prontos. |
 
 **No Windows, usar o WSL e rodar tudo dentro do Linux.** O `docs` so enxerga
 as CLIs instaladas no mesmo ambiente em que ele roda: um `az` instalado no
@@ -257,11 +325,11 @@ maquina a mao.
 
 | Requisito | Versao minima | Para que serve |
 |---|---|---|
-| Python | 3.10 | o `docs` e as dependencias de `requirements.txt` |
+| Python | 3.12 | exigido pelo projeto (`pyproject.toml`) e usado pelo `docs` |
 | Azure CLI (`az`) | 2.60.0 | login no Azure, que autentica a leitura do Azure DevOps. **Obrigatorio** |
 | CLI do Databricks (`databricks`) | 1.0.0 | login SSO no workspace, que autentica a leitura de notebooks |
 | Sessao `az login` | valida | sem ela o `docs` nao le o board |
-| Perfil SSO do Databricks | valido, em `DATABRICKS_CONFIG_PROFILE` | sem ele o snapshot sai sem inventario de notebook |
+| Perfil SSO do Databricks | valido, com nome em `databricks.perfil` no `settings.yaml` | sem ele o snapshot sai sem inventario de notebook |
 
 Nenhum dos dois logins usa segredo no `.env`. As CLIs guardam a sessao no
 proprio cache e renovam o token sozinhas; quando a sessao expira, a mensagem de
@@ -271,12 +339,15 @@ erro diz qual login refazer.
 
 O workspace nao permite gerar token pessoal, entao o `docs` acessa o
 Databricks por um **perfil SSO**: uma entrada com nome no arquivo
-`~/.databrickscfg`, autenticada com a sua conta corporativa. O nome e livre;
-os exemplos usam `revenue`.
+`~/.databrickscfg`, autenticada com a sua conta corporativa. O nome e definido
+em `databricks.perfil`; o clone usa `revenue`.
 
-**Pelo script (recomendado).** `scripts/preparar_ambiente.sh --perfil revenue`
-cria o perfil, abre o login e grava o nome no `.env`. Sem `--perfil`, o script
-pergunta o nome, com `revenue` como sugestao.
+**Pelo script (recomendado).** Defina `databricks.perfil` em
+`config/settings.yaml` (o clone vem com `revenue`) e rode
+`scripts/preparar_ambiente.sh`. O script abre o login para esse perfil e
+confere que `usuarios.databricks` corresponde a conta autenticada. O código do
+repo sempre consulta o perfil configurado e passa `--profile` explicitamente
+para a CLI.
 
 **A mao.** Um comando cria o perfil, se ele nao existe, ou refaz o login, se
 ele ja existe:
@@ -299,9 +370,10 @@ databricks auth login \
    O token nao vai para esse arquivo. Fica no cache da CLI, que o renova.
 3. Confira: `databricks auth profiles` deve listar `revenue` com
    `Valid: YES`.
-4. Aponte o repo para ele, no `.env`:
+4. Aponte o repo para ele em `config/settings.yaml`:
    ```bash
-   DATABRICKS_CONFIG_PROFILE=revenue
+   databricks:
+     perfil: revenue
    ```
 5. Confira no repo: `docs config-check` deve mostrar `ok Databricks`.
 
@@ -309,20 +381,22 @@ databricks auth login \
 `databricks auth login --host <DATABRICKS_HOST> --profile revenue`, ou o script
 de novo.
 
-**Trocar ou apagar.** Para usar outro perfil, mude
-`DATABRICKS_CONFIG_PROFILE` no `.env`, ou rode o script com outro `--perfil`.
-Para apagar, remova o bloco `[nome]` do `~/.databrickscfg`.
+**Trocar ou apagar.** Para usar outro perfil, mude somente
+`databricks.perfil` no `config/settings.yaml` e rode o setup. `--perfil` e
+aceito apenas como validação de compatibilidade e precisa coincidir com esse
+valor. Para apagar uma entrada antiga, remova o bloco `[nome]` do
+`~/.databrickscfg`.
 
 A extensao do Databricks no VS Code usa o mesmo `~/.databrickscfg`, mas nem
 todo perfil dela serve para o `docs`: so o de login SSO, com
 `auth_type = databricks-cli`. Perfil `azure-cli` ou de PAT aparece como valido
-em `databricks auth profiles` e nao devolve token ao `docs`. O script detecta
-e cria um `<nome>-sso` ao lado, sem mexer no original.
+em `databricks auth profiles`, mas nao atende a autenticacao SSO usada pelo
+repo. Configure em `databricks.perfil` o nome de um perfil SSO.
 
-O terminal integrado da extensao exporta `DATABRICKS_CONFIG_PROFILE` com o
-perfil dela. O `docs` ignora esse valor quando o `.env` tem um, e o
-`docs config-check` avisa da divergencia, porque a CLI chamada a mao naquele
-terminal continua usando o da extensao.
+O terminal integrado pode exportar `DATABRICKS_CONFIG_PROFILE`. O código do
+repo continua usando o valor de `databricks.perfil` e passa `--profile`
+explicitamente. Para comandos `databricks` digitados manualmente sem
+`--profile`, essa variável ainda pode selecionar outro perfil.
 
 ### Passo a passo manual
 
@@ -355,8 +429,8 @@ az upgrade --yes    # atualiza pelo mesmo gerenciador que instalou
 **4. Login no Azure (obrigatorio)**
 
 ```bash
-az login                      # abre o navegador, com a conta corporativa
-az login --use-device-code    # no WSL, se o navegador nao abrir
+az login                      # no navegador, escolha usuarios.azure
+az login --use-device-code    # no WSL; escolha usuarios.azure no navegador
 az account show               # confere quem esta logado
 ```
 
@@ -406,18 +480,18 @@ alguma. Rodar o script de novo corrige a maior parte sozinho.
 | Sintoma | O que fazer |
 |---|---|
 | `docs: command not found` | `source .venv/bin/activate`; se nao existir `.venv`, rodar o script |
-| `O az nao devolveu token` | sessao expirou: `az login` |
-| `O perfil X nao existe` | o nome no `.env`, ou exportado no terminal, nao bate com `databricks auth profiles`. Corrigir o `.env` ou rodar o script |
-| `O perfil X usa auth_type=azure-cli` | perfil que nao e SSO. Rodar o script, que cria `X-sso` |
+| `O az nao devolveu token` | sessao expirou: rode `scripts/preparar_ambiente.sh` para autenticar com `usuarios.azure` |
+| `O perfil X nao existe` | confira `databricks.perfil` em `config/settings.yaml` e compare com `databricks auth profiles`; rode o script para autenticar |
+| `O perfil X usa auth_type=azure-cli` | perfil que nao e SSO. Configure em `databricks.perfil` o nome de um perfil SSO e rode o setup |
 | `A CLI do Databricks nao devolveu token` | perfil SSO com sessao expirada: o comando de login sai na mensagem |
 | `CLI legada do Databricks` | pacote `databricks-cli` do pip, 0.x. O script remove do `.venv`; fora dele, `pip uninstall databricks-cli`. Depois `hash -r` |
 | `bash: .../databricks: No such file or directory` | o shell lembrava de uma CLI removida: `hash -r` ou terminal novo |
 | `401 Credential was not sent` | `DATABRICKS_HOST` com `http://`, `?o=` ou caminho: deixar so `https://<workspace>.azuredatabricks.net` |
 | `pasta ... nao existe` | rodar o script, que cria a pasta pessoal; se o caminho for fixo, sem seu login, `git pull` |
 | `repo N commit(s) atras` | `git pull` |
-| `DATABRICKS_CONFIG_PROFILE nao esta definido` | rodar `scripts/preparar_ambiente.sh --perfil <nome>` |
+| `databricks.perfil nao esta definido` | defina o nome em `config/settings.yaml` e rode `scripts/preparar_ambiente.sh` |
 | `autenticacao: PAT (AZDO_PAT)` sem querer | apagar o valor de `AZDO_PAT` no `.env` |
-| navegador nao abre no WSL | `az login --use-device-code`; no Databricks, copiar a URL |
+| navegador nao abre no WSL | `scripts/preparar_ambiente.sh --device-code`; no Databricks, copiar a URL |
 
 O token de GitHub continua opcional: sem ele o snapshot sai sem evidencia de
 commit, e registra a ausencia em vez de falhar. O mesmo vale para o Databricks
@@ -479,18 +553,21 @@ Onde falta material, o rascunho deixa a lacuna a vista. Ver ADR-0009.
 
 ## Estrutura
 
-| Pasta | Papel |
+| Pasta/arquivo | Papel |
 |---|---|
 | `src/docsquad/connectors/` | leitura dos tres sistemas. Escrita so via Executor |
 | `src/docsquad/gate/` | propostas e executor. O nucleo de seguranca |
+| `scripts/` | preparacao do ambiente, sincronizacao das instrucoes e hooks |
+| `tests/` | testes automatizados e configuracao ficticia em `tests/fixtures/` |
 | `config/glossario.yaml` | vocabulario canonico. Um conceito, um termo |
 | `decisions/` | ADRs. A fonte da verdade do "por que" |
 | `contracts/` | contratos de estilo. Nao vao para o indice de busca |
 | `templates/` | os seis padroes de documento |
 | `agent_instructions/` | contrato, papeis, rubricas e notas por ferramenta |
 | `review-log/` | comentarios de revisores humanos, transcritos |
-| `knowledge/` | corpus recuperavel: snapshots, dossies, papers, reviews |
-| `proposals/` | o portao. Auditavel via historico do git |
+| `knowledge/` | cards, commits, notebooks, dossies e sprint reviews coletados ou de referencia |
+| `outputs/` | rascunhos gerados para revisao e edicao humana |
+| `proposals/` | propostas por estado (`pending`, `approved`, `rejected`, `applied`), auditaveis pelo git |
 
 ---
 
@@ -509,7 +586,9 @@ ADR-0010, que registra tambem as duas excecoes, o DoR e o portao de
 `Waiting-QA`.
 
 O padrao 5 foi extraido do notebook 30, do repositorio de modelagem, e a voz
-esta em `contracts/estilo-notebook.md`. Ver ADR-0014.
+esta em `contracts/estilo-notebook.md`. A documentacao apresenta o contexto e
+os conceitos, descreve metodologia e variaveis, contextualiza cada secao,
+interpreta as saidas e fecha com uma sintese. Ver ADR-0014.
 
 ---
 

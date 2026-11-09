@@ -20,18 +20,72 @@ uma celula, e quem abre o notebook nao o encontra.
 `templates/notebook-doc.md`. Tres celulas de abertura, nesta ordem, antes de
 qualquer codigo:
 
-1. **Cabecalho**: o que o notebook entrega, a tabela de perguntas com a secao
-   de cada uma, e `O que ele nao responde`;
-2. **Termos**: so os termos que confundem quando lidos sem aviso, e a regra de
-   leitura que vale para o notebook inteiro;
-3. **Resumo**: a regua e a data dos numeros, e uma resposta curta por
-   pergunta, com numero.
+1. **Cabecalho**: o tema e o contexto de negocio, por que a analise existe,
+   o que o notebook entrega, a tabela de perguntas com a secao de cada uma,
+   e `O que ele nao responde`;
+2. **Termos e variaveis**: os conceitos que confundem quando lidos sem aviso,
+   um dicionario das variaveis de negocio e derivadas, e a regra de leitura
+   que vale para o notebook inteiro;
+3. **Resumo**: a regua e a data dos numeros, a abordagem metodologica em uma
+   frase, e uma resposta curta por pergunta, com numero e interpretacao.
 
 Quem le so as tres primeiras celulas sai com a resposta. O resto e lastro.
 
-Depois vem a configuracao, a secao 1 com a regua, e uma secao por pergunta.
-Dentro de cada secao, cada tabela ou grafico e um ciclo de tres celulas:
-abertura em markdown, calculo em codigo, leitura em markdown.
+## Contexto e explicacao dos conceitos
+Documentacao nao pode depender de o leitor conhecer o tema ou ter acompanhado
+o desenvolvimento. Antes de apresentar uma analise nova, explique em prosa
+Markdown qual problema de negocio esta sendo observado, quais conceitos de
+volume, desconto ou outros termos centrais significam neste contexto, e como
+eles se relacionam. Diga por que cada bloco de analise existe e como ele
+prepara a leitura do proximo. Uma tabela de variaveis complementa essa
+explicacao, mas nao a substitui.
+
+Cada secao que introduz pergunta, conceito, fonte ou logica nova comeca com
+um texto que explique o objetivo da secao e a ideia que sera aplicada, antes
+do codigo e dos resultados. Ao mudar a populacao, a unidade de analise, a
+definicao de uma variavel ou a regra de calculo entre secoes, explique a
+mudanca no ponto em que ela ocorre e o efeito que pode ter na comparacao.
+
+## Metodologia
+A secao de metodologia declara, em linguagem de negocio e com os nomes de
+codigo quando necessario:
+
+- a pergunta ou hipotese que orienta a analise;
+- a populacao, unidade de analise, grupos comparados e criterios de inclusao
+  ou exclusao;
+- as fontes, o periodo observado, a janela de referencia e as datas de corte;
+- como volume, desconto, linha de base, metricas e indicadores sao calculados,
+  incluindo formulas e transformacoes que afetam a interpretacao;
+- por que essa comparacao responde a pergunta, quais premissas exige e quais
+  conclusoes ela nao permite.
+
+Quando a metodologia muda de uma pergunta para outra, descreva a variacao na
+abertura da secao correspondente. Nao deixe filtros, denominadores, grupos de
+referencia ou diferencas entre valores cadastrados e realizados implicitos no
+codigo.
+
+## Dicionario de variaveis
+O dicionario registra as variaveis relevantes para a conclusao: entradas,
+variaveis de negocio, variaveis derivadas, desfechos, grupos e indicadores.
+Use os nomes exatamente como aparecem no codigo e inclua:
+
+| variavel no codigo | significado no contexto | origem ou calculo | unidade/grao | uso na analise |
+|---|---|---|---|---|
+| `{nome}` | {o que representa, em termos de negocio} | {fonte ou formula} | {unidade e nivel de observacao} | {como entra na comparacao e como ler valores} |
+
+Explique siglas e diferencie variaveis parecidas, por exemplo desconto
+cadastrado de desconto realizado, volume ofertado de volume convertido, ou
+valor absoluto de percentual. Se a mesma variavel muda de significado,
+unidade ou calculo entre secoes, documente cada uso junto da secao. Nao liste
+nomes tecnicos sem explicar o que representam; nao inclua variaveis auxiliares
+de codigo que nao mudam a leitura do negocio.
+
+Depois vem a configuracao, a secao 1 com a metodologia e a regua, e uma secao
+por pergunta. Cada secao introduz seu conceito, objetivo, recorte e logica em
+Markdown. Dentro de cada secao, cada tabela ou grafico e um ciclo de tres
+celulas: abertura em Markdown, calculo em codigo, leitura em Markdown. Ao
+fim, uma sintese interpreta o conjunto das secoes e responde a pergunta
+principal do notebook.
 
 ## O que ele nao responde
 Obrigatorio, e logo no cabecalho. E o limite que um leitor apressado
@@ -62,6 +116,8 @@ Toda saida e seguida de uma celula que comeca com `**Leitura.**`. Ela:
 - poe o numero principal em negrito: "a nossa probabilidade ordena a
   conversao com **AUC 0,925**";
 - diz o que o numero autoriza concluir, e para por ai;
+- interpreta o resultado no contexto do conceito e da hipotese apresentados,
+  explicando o que o padrao observado mostra e como se relaciona a pergunta;
 - separa a excecao em paragrafo proprio, com abertura em negrito: "**A
   excecao e o par sem historico proprio**";
 - explica a excecao quando ha explicacao, e diz quanto ela pesa: "esse grupo
@@ -69,6 +125,16 @@ Toda saida e seguida de uma celula que comeca com `**Leitura.**`. Ela:
 
 Leitura nao repete a tabela em prosa. Se todas as linhas importam, a tabela ja
 disse.
+
+## Sintese final
+Depois dos resultados, inclua uma sintese em Markdown que retome a pergunta
+principal e interprete conjuntamente os achados das secoes. Explique quais
+padroes convergem, quais divergem, o que os resultados sustentam e quais
+limites impedem conclusoes mais fortes. Diferencie resultado observado de
+efeito causal e nao invente explicacoes que os dados ou o notebook nao
+mostram. Quando nao houver saidas de execucao disponiveis, declare que a
+interpretacao quantitativa esta pendente; nao substitua a sintese por uma
+conclusao especulativa.
 
 ## Numero
 - formato brasileiro: 0,925, 683.661, 3,94 milhoes. A saida do codigo pode

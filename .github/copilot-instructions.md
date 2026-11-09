@@ -22,47 +22,6 @@ sempre sob validação humana explícita.
 Não contém modelagem. A modelagem vive em outro repositório, e a ligação entre
 os dois se faz por referência, nunca por cópia de código.
 
-## A regra que não se negocia
-
-**Nenhum agente escreve em sistema externo.**
-
-Um agente produz uma proposta, que é um arquivo JSON em `proposals/pending/`.
-Um humano aprova e se identifica, num de dois lugares: na janela de permissão
-da ferramenta de IA, quando o agente pede `docs approve`, ou no
-`docs decidir`, num terminal dele. Um executor separado aplica apenas o que
-está em `proposals/approved/`. Ver ADR-0015.
-
-Consequências práticas para você, agente:
-
-- ler do Azure DevOps, do GitHub e do Databricks é permitido, pelas
-  credenciais que a pessoa já configurou: comandos de leitura do `docs`
-  (`collect`, `sprint`, `notebooks`, `quem-sou-eu`, `config-check`) e
-  subcomandos de leitura das CLIs, como `databricks workspace list`,
-  `databricks workspace export`, `databricks workspace export-dir`,
-  `az boards work-item show`, `az boards query` e `gh api` com `GET`.
-  Exportação vai para `knowledge/notebooks/`, que está fora do git. Ver
-  ADR-0011;
-- nunca escrever nesses sistemas diretamente, por nenhum caminho: nada de
-  `import`, `delete`, `mkdirs`, `sync`, `update`, `create`, `comment`,
-  `assign`, nem requisição HTTP que não seja `GET`. Escrita só passa por
-  proposta;
-- nunca executar código nem SQL em compute do Databricks. SQL escreve tanto
-  quanto lê, e execução custa dinheiro da squad;
-- nunca exibir, registrar nem gravar token. Se um comando imprime credencial,
-  não repassar a saída;
-- nunca importar nem instanciar `docsquad.gate.executor.Executor`;
-- rodar `docs propose ...` é permitido, porque só cria arquivo em `pending/`;
-- pedir `docs approve <id> --aplicar` ou `docs reject <id> --reason "..."` é
-  permitido só nas condições da seção abaixo. A ferramenta pergunta à pessoa
-  antes de executar, sempre, e o clique dela é a aprovação;
-- nunca rodar `docs decidir` nem `docs apply`. O primeiro é o caminho do
-  terminal da pessoa; o segundo já vem junto do `approve --aplicar`;
-- nunca contornar a janela de permissão: nada de chamar `ProposalStore` em
-  Python, mover ou editar JSON em `proposals/`, juntar vários `approve` num
-  comando composto, ou mexer em `.claude/settings.json`, `.codex/rules/`,
-  `.github/hooks/`, `agent_instructions/aprovacao.yaml` ou
-  `scripts/hooks/`. Se um `approve` rodar sem a ferramenta ter perguntado,
-  avisar a pessoa na hora: a configuração está quebrada.
 
 Na escrita, a separação depende da janela de permissão da ferramenta, gerada
 por `scripts/sync_agent_files.py`. Se você se comportar mal, o pior resultado
@@ -203,7 +162,10 @@ resolve esse conflito sozinho, e nem deveria. O autor arbitra.
   `contracts/` define o estilo de cada um que já tem contrato escrito, hoje
   card e comentário de card, sprint review e notebook;
 - documentação de notebook mora no próprio notebook, em células markdown, e
-  não em arquivo separado. Ver `contracts/estilo-notebook.md` e ADR-0014;
+  não em arquivo separado. Deve introduzir o tema e os conceitos, explicar a
+  metodologia, manter um dicionário de variáveis, contextualizar cada seção,
+  interpretar cada resultado e fechar com uma síntese do conjunto. Ver
+  `templates/notebook-doc.md`, `contracts/estilo-notebook.md` e ADR-0014;
 - toda afirmação com número cita a fonte, com data;
 - incerteza declarada como incerteza, nunca omitida.
 

@@ -53,6 +53,14 @@ class DevOpsClient:
         header, self.metodo_auth = cabecalho(pat)
         self.s = requests.Session()
         self.s.headers.update(header)
+        esperado = settings().get("usuarios", {}).get("devops_email", "").strip()
+        if esperado:
+            atual = self.me().get("email", "").strip()
+            if atual.casefold() != esperado.casefold():
+                raise RuntimeError(
+                    f"Azure DevOps autenticado como '{atual or 'desconhecido'}', "
+                    f"mas config/settings.yaml espera '{esperado}'. Confira "
+                    "AZDO_PAT ou a sessao de az login.")
 
     # ---------- helpers ----------
 

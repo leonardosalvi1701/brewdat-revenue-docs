@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import base64
+import posixpath
 from typing import Iterator
 
 import requests
@@ -22,6 +23,14 @@ class DatabricksClient:
         header, self.metodo_auth = cabecalho_databricks(token, perfil)
         self.s = requests.Session()
         self.s.headers.update(header)
+        esperado = settings().get("usuarios", {}).get("databricks", "").strip()
+        if esperado:
+            atual = self.usuario().strip()
+            if atual.casefold() != esperado.casefold():
+                raise RuntimeError(
+                    f"Databricks autenticado como '{atual or 'desconhecido'}', "
+                    f"mas config/settings.yaml espera '{esperado}'. Refaça o "
+                    "login SSO com a conta configurada.")
 
     def _get(self, endpoint: str, **params):
         r = self.s.get(f"{self.host}{endpoint}", params=params, timeout=120)
@@ -100,6 +109,10 @@ class DatabricksClient:
 
     def import_notebook(self, path: str, content: str, language: str = "PYTHON",
                         overwrite: bool = False) -> dict:
+        # A API de import nao cria os diretorios pais. mkdirs e idempotente e
+        # cria a hierarquia necessaria quando ela ainda nao existe.
+        self._post("/api/2.0/workspace/mkdirs",
+                   {"path": posixpath.dirname(path)})
         body = {
             "path": path,
             "format": "SOURCE",

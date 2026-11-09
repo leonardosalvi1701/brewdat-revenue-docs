@@ -6,21 +6,20 @@
 #   2. instala o Azure CLI, ou atualiza se estiver abaixo da versao minima;
 #   3. exige `az login`. Sem sessao valida no Azure, o script para aqui;
 #   4. instala ou atualiza a CLI do Databricks;
-#   5. exige um perfil SSO do Databricks definido em DATABRICKS_CONFIG_PROFILE
-#      no .env, faz o login nele se preciso e cria a sua pasta revenue-docs
-#      no workspace, se ela ainda nao existir;
+#   5. exige o perfil SSO definido em databricks.perfil no settings.yaml, faz
+#      o login nele se preciso e cria a pasta revenue-docs no workspace;
 #   6. roda `docs config-check`, que sai com erro se algum item falhar.
 #
 # Tambem corrige o que travou gente da squad em 08/10/2026: remove a CLI
 # legada do Databricks (pacote `databricks-cli` do pip) do .venv, tira o fim
-# de linha do Windows do .env, troca para um perfil SSO quando o perfil do
-# .env e de outro tipo, e avisa quando o repo esta atras do GitHub.
+# de linha do Windows do .env, valida o perfil SSO definido no settings e
+# avisa quando o repo esta atras do GitHub.
 #
 # Uso:
 #   scripts/preparar_ambiente.sh                  # caminho normal
 #   scripts/preparar_ambiente.sh --atualizar      # forca atualizar as CLIs
 #   scripts/preparar_ambiente.sh --device-code    # login por codigo, sem navegador
-#   scripts/preparar_ambiente.sh --perfil revenue # nome do perfil do Databricks
+#   scripts/preparar_ambiente.sh --perfil revenue # valida o perfil do settings
 #   scripts/preparar_ambiente.sh --sem-databricks # pula os passos 4 e 5
 #
 # No WSL, rodar dentro do Linux, e nao no PowerShell: o `docs` so enxerga as
@@ -41,11 +40,11 @@ PYTHON_MIN="3.10"
 AZ_MIN="2.60.0"
 DATABRICKS_MIN="1.0.0"
 DATABRICKS_HOST_PADRAO="https://adb-1820723078635205.5.azuredatabricks.net"
-PERFIL_PADRAO="revenue"
 PASTA_PRODUTO="revenue-docs"
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="$RAIZ/.env"
+SETTINGS_FILE="$RAIZ/config/settings.yaml"
 
 ATUALIZAR=0
 SEM_DATABRICKS=0
@@ -70,6 +69,46 @@ passo() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 ok()    { printf '    \033[32mok\033[0m %s\n' "$*"; }
 aviso() { printf '    \033[33m!\033[0m %s\n' "$*"; }
 falha() { printf '\n\033[31mERRO:\033[0m %s\n' "$*" >&2; exit 1; }
+
+# A configuracao pessoal e validada antes de instalar pacotes ou iniciar
+# logins. A leitura simples evita depender de PyYAML antes da criacao do .venv.
+ler_config() {
+  local secao="$1" campo="$2"
+  sed -n "/^${secao}:[[:space:]]*$/,/^[^[:space:]#]/p" "$SETTINGS_FILE" \
+    | sed -nE "s/^[[:space:]]+${campo}:[[:space:]]*[\"']?([^\"'#]+)[\"']?[[:space:]]*(#.*)?$/\1/p" \
+    | head -n1 | xargs
+}
+ler_usuario() { ler_config usuarios "$1"; }
+
+passo "Identificacao pessoal"
+for campo in azure databricks github devops_email git_email; do
+  valor="$(ler_usuario "$campo")"
+  case "$valor" in
+    ""|PREENCHER*|\<*\>)
+      falha "Preencha usuarios.$campo em config/settings.yaml antes de preparar o ambiente."
+      ;;
+  esac
+done
+PERFIL_CONFIG="$(ler_config databricks perfil)"
+case "$PERFIL_CONFIG" in
+  ""|PREENCHER*|\<*\>)
+    falha "Defina databricks.perfil em config/settings.yaml antes de preparar o ambiente."
+    ;;
+esac
+if [[ -n "$PERFIL" && "$PERFIL" != "$PERFIL_CONFIG" ]]; then
+  falha "--perfil '$PERFIL' diverge de databricks.perfil='$PERFIL_CONFIG' em config/settings.yaml. Altere a configuracao e rode o setup novamente."
+fi
+PERFIL="$PERFIL_CONFIG"
+USUARIO_AZURE="$(ler_usuario azure)"
+USUARIO_DATABRICKS="$(ler_usuario databricks)"
+USUARIO_GITHUB="$(ler_usuario github)"
+EMAIL_DEVOPS="$(ler_usuario devops_email)"
+EMAIL_GIT="$(ler_usuario git_email)"
+ok "identificadores pessoais preenchidos"
+
+# O email usado por commits neste clone vem da mesma fonte de identidade.
+git -C "$RAIZ" config --local user.email "$EMAIL_GIT"
+ok "git user.email=$EMAIL_GIT neste clone"
 
 # versao_ok ATUAL MINIMA -> verdadeiro se ATUAL >= MINIMA
 versao_ok() { [[ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -n1)" == "$2" ]]; }
@@ -139,6 +178,7 @@ if [[ ! -f "$ENV_FILE" ]]; then
   cp "$RAIZ/.env.example" "$ENV_FILE"
   ok ".env criado a partir do .env.example"
 fi
+env_set AZDO_USER_EMAIL "$EMAIL_DEVOPS"
 # .env editado no Windows deixa \r no fim de cada valor, e o perfil
 # "revenue\r" nao existe.
 if grep -q $'\r' "$ENV_FILE"; then
@@ -203,6 +243,7 @@ ok "az $AZ_VER"
 # ---------- 3. az login (obrigatorio) ----------
 passo "Login no Azure (obrigatorio)"
 if ! az account show --only-show-errors >/dev/null 2>&1; then
+  aviso "na tela do Azure, autentique como $USUARIO_AZURE"
   if [[ $DEVICE_CODE -eq 1 ]]; then
     aviso "abra https://microsoft.com/devicelogin e digite o codigo abaixo"
     az login --use-device-code --only-show-errors >/dev/null
@@ -211,8 +252,29 @@ if ! az account show --only-show-errors >/dev/null 2>&1; then
   fi
 fi
 az account show --only-show-errors >/dev/null 2>&1 \
-  || falha "Sem sessao no Azure. Rode: az login   (no WSL: az login --use-device-code)"
-ok "logado como $(az account show --query user.name -o tsv)"
+  || falha "Sem sessao no Azure. Rode scripts/preparar_ambiente.sh para autenticar com usuarios.azure (no WSL, use --device-code)."
+AZURE_ATUAL="$(az account show --query user.name -o tsv)"
+if [[ "${AZURE_ATUAL,,}" != "${USUARIO_AZURE,,}" ]]; then
+  falha "Azure autenticou como '$AZURE_ATUAL', mas config/settings.yaml espera '$USUARIO_AZURE'. Rode az logout --username '$AZURE_ATUAL' e depois scripts/preparar_ambiente.sh; na tela de login, escolha '$USUARIO_AZURE'."
+fi
+ok "logado como $AZURE_ATUAL, conforme config/settings.yaml"
+
+# A CLI do GitHub aceita selecionar um usuario ja autenticado, mas nao
+# preseleciona uma conta durante o OAuth. Se houver sessao, ativa a conta
+# indicada no settings; se ela nao estiver cadastrada, falha com a instrucao.
+if command -v gh >/dev/null 2>&1 && gh auth status --hostname github.com >/dev/null 2>&1; then
+  GH_ATUAL="$(gh api user --jq .login 2>/dev/null || true)"
+  if [[ "${GH_ATUAL,,}" != "${USUARIO_GITHUB,,}" ]]; then
+    if ! gh auth switch --hostname github.com --user "$USUARIO_GITHUB" >/dev/null 2>&1; then
+      falha "GitHub esta autenticado como '$GH_ATUAL'; '$USUARIO_GITHUB' (config/settings.yaml) nao esta autenticado na CLI. Rode gh auth login --hostname github.com --web com essa conta e tente novamente."
+    fi
+    GH_ATUAL="$(gh api user --jq .login 2>/dev/null || true)"
+  fi
+  if [[ "${GH_ATUAL,,}" != "${USUARIO_GITHUB,,}" ]]; then
+    falha "GitHub autenticou como '$GH_ATUAL', mas config/settings.yaml espera '$USUARIO_GITHUB'."
+  fi
+  ok "GitHub CLI usa $GH_ATUAL, conforme config/settings.yaml"
+fi
 
 if [[ -n "$(env_get AZDO_PAT)" ]]; then
   aviso "AZDO_PAT esta preenchido no .env e tem precedencia sobre o az login."
@@ -272,19 +334,7 @@ if [[ $SEM_DATABRICKS -eq 0 ]]; then
   passo "Perfil SSO do Databricks (obrigatorio)"
   HOST="$(env_get DATABRICKS_HOST)"
   [[ -n "$HOST" ]] || { HOST="$DATABRICKS_HOST_PADRAO"; env_set DATABRICKS_HOST "$HOST"; }
-
-  PERFIL="${PERFIL:-$(env_get DATABRICKS_CONFIG_PROFILE)}"
-  if [[ -z "$PERFIL" ]]; then
-    read -r -p "    Nome do perfil do Databricks [$PERFIL_PADRAO]: " PERFIL
-    PERFIL="${PERFIL:-$PERFIL_PADRAO}"
-  fi
-
-  # O terminal da extensao do Databricks no VS Code exporta o perfil dela.
-  # O docs usa o do .env, mas a CLI chamada a mao naquele terminal nao.
-  if [[ -n "${DATABRICKS_CONFIG_PROFILE:-}" && "$DATABRICKS_CONFIG_PROFILE" != "$PERFIL" ]]; then
-    aviso "este terminal exporta DATABRICKS_CONFIG_PROFILE=$DATABRICKS_CONFIG_PROFILE"
-    aviso "o docs usa $PERFIL, do .env. Para a CLI usar o mesmo: unset DATABRICKS_CONFIG_PROFILE"
-  fi
+  ok "perfil selecionado em config/settings.yaml: $PERFIL"
 
   # Tipo e host do perfil, lidos pelo mesmo codigo que o docs usa. Perfil de
   # outro tipo (azure-cli, PAT) aparece como valido na CLI e nao da token ao
@@ -299,16 +349,11 @@ EOF
   }
   read -r TIPO HOST_PERFIL < <(perfil_info "$PERFIL")
   if [[ "$TIPO" != "ausente" && "$TIPO" != "databricks-cli" && "$TIPO" != "desconhecido" ]]; then
-    aviso "o perfil $PERFIL usa auth_type=$TIPO, e o docs precisa de login SSO"
-    PERFIL="$PERFIL-sso"
-    aviso "usando o perfil $PERFIL, sem mexer no anterior"
-    read -r TIPO HOST_PERFIL < <(perfil_info "$PERFIL")
+    falha "O perfil configurado '$PERFIL' usa auth_type=$TIPO, e o docs precisa de login SSO. Escolha outro nome em databricks.perfil no settings.yaml."
   fi
   if [[ "$TIPO" != "ausente" && "${HOST_PERFIL%/}" != "${HOST%/}" ]]; then
-    falha "O perfil $PERFIL aponta para $HOST_PERFIL, e o workspace da squad e $HOST. Escolha outro nome: --perfil <nome>"
+    falha "O perfil '$PERFIL' aponta para $HOST_PERFIL, e o workspace da squad e $HOST. Defina outro nome em databricks.perfil no settings.yaml."
   fi
-  env_set DATABRICKS_CONFIG_PROFILE "$PERFIL"
-  ok "DATABRICKS_CONFIG_PROFILE=$PERFIL no .env"
 
   # `auth token` so responde com sessao valida. A saida vai para o lixo porque
   # contem o token.
@@ -324,6 +369,15 @@ EOF
   # Pasta do produto, lida pelo inventario e unica onde proposta aprovada
   # escreve notebook. Espelha databricks.paths em config/settings.yaml.
   LOGIN="$("$DBX" current-user me --profile "$PERFIL" -o json | "$PY" -c 'import json,sys; print(json.load(sys.stdin)["userName"])')"
+  if [[ "${LOGIN,,}" != "${USUARIO_DATABRICKS,,}" ]]; then
+    aviso "Databricks autenticou como '$LOGIN'; selecione '$USUARIO_DATABRICKS' no novo login SSO"
+    "$DBX" auth login --host "$HOST" --profile "$PERFIL"
+    LOGIN="$("$DBX" current-user me --profile "$PERFIL" -o json | "$PY" -c 'import json,sys; print(json.load(sys.stdin)["userName"])')"
+    if [[ "${LOGIN,,}" != "${USUARIO_DATABRICKS,,}" ]]; then
+      falha "Databricks autenticou como '$LOGIN', mas config/settings.yaml espera '$USUARIO_DATABRICKS'."
+    fi
+  fi
+  ok "Databricks autenticado como $LOGIN, conforme config/settings.yaml"
   PASTA="/Workspace/Users/$LOGIN/$PASTA_PRODUTO"
   if "$DBX" workspace get-status "$PASTA" --profile "$PERFIL" >/dev/null 2>&1; then
     ok "pasta $PASTA ja existe"

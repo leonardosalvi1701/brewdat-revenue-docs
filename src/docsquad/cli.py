@@ -475,7 +475,12 @@ def _pasta_databricks(cfg: dict) -> list[diag.Achado]:
     except Exception as exc:
         return [diag.Achado(diag.FALHA, "Databricks", str(exc))]
 
-    achados = [diag.Achado(diag.OK, "Databricks", f"{cliente.metodo_auth}, login {login}")]
+    identidade = diag.comparar_identidade(
+        "Identidade Databricks", cfg.get("usuarios", {}).get("databricks", ""), login)
+    achados = [diag.Achado(diag.OK, "Databricks", f"{cliente.metodo_auth}, login {login}"),
+               identidade]
+    if identidade.nivel == diag.FALHA:
+        return achados
     for bruto in cfg["databricks"]["paths"]:
         caminho = cliente.resolver(bruto)
         try:
@@ -507,11 +512,17 @@ def config_check():
     cfg = settings()
     console.print(Panel(json.dumps(cfg["gate"], indent=2), title="Politica do portao"))
 
-    achados = diag.checar_repo() + diag.checar_env_file()
+    achados = (diag.checar_repo() + diag.checar_env_file()
+               + diag.checar_identidades_locais(cfg)
+               + diag.checar_identidade_github(cfg))
     try:
         devops = DevOpsClient()
         devops.current_iteration()
         achados.append(diag.Achado(diag.OK, "Azure DevOps", devops.metodo_auth))
+        identidade_devops = devops.me().get("email", "")
+        achados.append(diag.comparar_identidade(
+            "Identidade DevOps", cfg.get("usuarios", {}).get("devops_email", ""),
+            identidade_devops))
     except Exception as exc:
         achados.append(diag.Achado(diag.FALHA, "Azure DevOps", str(exc)))
 
