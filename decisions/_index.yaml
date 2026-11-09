@@ -102,8 +102,29 @@ decisoes:
     arquivo: ADR-0014-documentacao-dentro-do-notebook.md
 
   - id: ADR-0015
-    titulo: "Aprovacao de proposta pela janela de permissao da ferramenta de IA"
-    status: proposta
+    titulo: "Aprovacao de vigente pela janela de permissao da ferramenta de IA"
+    status: vigente
     projeto: docsquad
     data: 2026-10-09
     arquivo: ADR-0015-aprovacao-pela-janela-de-permissao.md
+
+  - id: ADR-0016
+    titulo: "Regua de leitura de experimento de desconto com tres ROIs nomeados"
+    status: vigente
+    projeto: desconto-qmin
+    data: 2026-11-09
+    arquivo: ADR-0016-regua-de-leitura-de-experimento.md
+
+  - id: ADR-0017
+    titulo: "Licoes de desenho para o proximo experimento de desconto"
+    status: proposta
+    projeto: desconto-qmin
+    data: 2026-11-09
+    arquivo: ADR-0017-desenho-do-proximo-experimento-de-desconto.md
+
+  - id: ADR-0018
+    titulo: "Validacao, titulo com tema e conferencia de sprint no padrao de card"
+    status: proposta
+    projeto: docsquad
+    data: 2026-11-09
+    arquivo: ADR-0018-validacao-e-titulo-no-padrao-de-card.md

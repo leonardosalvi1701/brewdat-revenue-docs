@@ -31,6 +31,14 @@ qualquer codigo:
 
 Quem le so as tres primeiras celulas sai com a resposta. O resto e lastro.
 
+## O leitor e sempre novo
+Cada versao do notebook e escrita como se fosse a primeira que a pessoa abre.
+Nao existe "na versao anterior", "corrigimos que" ou "antes isso era feito
+assim": o historico mora no git e nos comentarios dos cards, nao no material
+que alguem abre para entender o resultado. Quando uma versao corrige um erro
+conceitual, o que entra e a definicao certa, apresentada como definicao e nao
+como correcao.
+
 ## Contexto e explicacao dos conceitos
 Documentacao nao pode depender de o leitor conhecer o tema ou ter acompanhado
 o desenvolvimento. Antes de apresentar uma analise nova, explique em prosa
@@ -139,6 +147,10 @@ conclusao especulativa.
 ## Numero
 - formato brasileiro: 0,925, 683.661, 3,94 milhoes. A saida do codigo pode
   sair em formato americano; a leitura converte;
+- numero absoluto sempre acompanhado do percentual. Contagem sozinha nao
+  responde se e muito ou pouco; quando as duas perguntas existem, as duas
+  reguas vao em colunas separadas e com nome explicito: quanto pesa dentro do
+  recorte e quanto pesa na base inteira;
 - data em dd/mm/aaaa na prosa. Semana e mes em codigo ficam como o dado traz;
 - a regua e a data de referencia aparecem uma vez, no resumo, e de novo em
   toda secao que use outra regua;
@@ -183,11 +195,41 @@ le o fim antes de errar.
   qual contrato quebrou;
 - `assert_unique` antes de join, e assert de contagem depois: o join nao
   perde nem duplica linha;
-- `mostra(pdf, titulo)` em toda tabela, com titulo numerado igual ao da
-  secao, para o print do run ser legivel fora do notebook;
+- `mostra(pdf, titulo)` em toda tabela: imprime o titulo numerado, igual ao
+  da secao, e mostra a tabela uma unica vez com
+  `display(spark.createDataFrame(pdf))`. A tabela nunca sai tambem por
+  `print`: no notebook publicado ela apareceria duas vezes, e e o display do
+  PySpark que deixa ordenar e baixar. No exemplar, a funcao converte Decimal e
+  numero guardado como texto para float antes do display;
 - paleta fixa por serie e por categoria, igual entre notebooks do mesmo
   projeto, e rotulo direto na serie em vez de legenda;
+- a cor segue o trabalho que ela faz. Categoria e cor categorica, em ordem
+  fixa: tons de um mesmo matiz ficam a poucos passos de luminosidade e o olho
+  nao separa as fatias. Magnitude continua e rampa de um matiz so. Polaridade
+  e par de matizes com cinza no meio. Rotulo direto em toda fatia que couber,
+  porque parte das cores fica abaixo do contraste minimo contra fundo claro;
 - comentario de codigo diz por que, nunca o que.
+
+## Databricks: o que quebra sem aviso
+Quatro armadilhas que produzem notebook errado com execucao verde:
+
+- **markdown e codigo nunca na mesma celula.** Celula que abre com
+  `# MAGIC %md` vira markdown inteira, e o Python abaixo dela nao roda, sem
+  erro visivel. O job termina com sucesso mesmo assim;
+- **grafico com `display(fig)`, nunca `plt.show()`.** `plt.show()` so
+  renderiza em sessao interativa: em execucao avulsa a figura e descartada, e
+  o notebook congelado sai com as tabelas e nenhum grafico;
+- **`dbutils.notebook.exit` em celula propria.** O resultado da celula que
+  chama `exit` vira valor de saida, e valor de saida nao sobrevive a congelar o
+  notebook. Tudo que precisa aparecer fica em celula anterior;
+- **o notebook que a pessoa abre sai executado.** Rodar so pela API de
+  comandos deixa o notebook no workspace como se nunca tivesse rodado. O que
+  se publica e o notebook com as saidas do run que a leitura cita.
+
+Notebook feito para alguem baixar dados, como a base de uma plataforma de
+validacao, grava a base numa tabela Delta, e a celula de download e so
+`display(spark.read.table(...))`, sem pandas e sem variavel de celula
+anterior: ela roda sozinha e o download sai do display.
 
 ## Voz
 - primeira pessoa do plural para o nosso trabalho: "a nossa probabilidade",

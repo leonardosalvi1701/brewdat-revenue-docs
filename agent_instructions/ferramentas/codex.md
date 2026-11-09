@@ -26,4 +26,5 @@ Duas condicoes, sem as quais a pergunta nao acontece:
   assim: responder que sim quando o Codex perguntar na primeira vez;
 - nao rodar com aprovacao desligada (`--yolo`, ou `approval_policy = "never"`).
   Nesses modos, comando com `prompt` e recusado, e nao executado: o
-  `approve` falha, e a pessoa aprova pelo `docs decidir`.
+  `approve` falha. O agente para e avisa, e a pessoa religa a aprovacao;
+  `docs decidir` e so contingencia, por decisao dela.

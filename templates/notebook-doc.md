@@ -80,7 +80,11 @@ data de referencia e abordagem metodologica em uma frase clara.}
   valor, e o que fica de fora dele;
 - constantes: chaves, alvo, ordem das categorias;
 - funcoes de contrato: require_columns na leitura, assert_unique antes de join;
-- mostra(pdf, titulo): toda tabela sai com titulo numerado, igual ao da secao;
+- mostra(pdf, titulo): imprime o titulo numerado, igual ao da secao, e mostra a
+  tabela uma vez com display(spark.createDataFrame(pdf)), nunca tambem por print;
+- graficos com display(fig), nunca plt.show();
+- markdown e codigo em celulas separadas: celula que abre com # MAGIC %md nao
+  roda o codigo abaixo dela;
 - paleta fixa por serie e por categoria, igual entre notebooks do mesmo projeto.
 -->
 

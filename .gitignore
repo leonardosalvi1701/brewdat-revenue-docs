@@ -6,6 +6,7 @@ knowledge/cards/*.json
 knowledge/commits/*.json
 knowledge/notebooks/*
 !knowledge/**/.gitkeep
+proposals/applied/*.json
 proposals/pending/*.json
 proposals/rejected/*.json
 outputs/*
@@ -15,3 +16,4 @@ outputs/*
 .pytest_cache/
 
 .databricks
+.vscode/

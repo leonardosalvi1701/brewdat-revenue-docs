@@ -1,7 +1,7 @@
 ---
 id: ADR-0015
 titulo: Aprovacao de proposta pela janela de permissao da ferramenta de IA
-status: proposta
+status: vigente
 data: 2026-10-09
 projeto: docsquad
 autor: Leonardo Salvi
@@ -42,8 +42,13 @@ antes de executar um comando, configuravel por repositorio:
 ## Decisao
 Adotamos a janela de permissao da ferramenta de IA como lugar de aprovacao.
 O agente pede `docs approve <id> --aplicar` depois de mostrar o conteudo com
-`docs show`, e a ferramenta pergunta antes de executar. `docs decidir` fica
-como o caminho do terminal.
+`docs show`, e a ferramenta pergunta antes de executar. A aprovacao acontece
+dentro da conversa, inclusive a revisao de varias pendentes, uma por vez.
+`docs decidir` deixa de ser caminho da squad e fica so como contingencia
+quando a janela de uma ferramenta nao funcionar.
+
+Vigente desde 09/11/2026, por decisao do Leonardo: o fluxo de proposta e
+definido dentro do mesmo chat, e nao pelo terminal.
 
 As tres configuracoes sao geradas de uma fonte so,
 `agent_instructions/aprovacao.yaml`, por `scripts/sync_agent_files.py`.
